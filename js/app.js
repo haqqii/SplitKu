@@ -116,12 +116,7 @@ let currentPage = 1;
 let historyPage = 1;
 let extraCostCounter = 0;
 
-let people = [
-    { key: 'qulub', name: 'Qulub' },
-    { key: 'haqqi', name: 'Haqqi' },
-    { key: 'yohn', name: 'Mas Yohn' },
-    { key: 'lintang', name: 'Mas Lintang' }
-];
+let people = [];
 
 // ============================================================================
 // DARK MODE
@@ -189,6 +184,13 @@ function renderPeopleManage() {
     const container = document.getElementById('peopleList');
     if (!container) {
         console.error('peopleList container not found!');
+        return;
+    }
+
+    // Empty state
+    if (people.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: var(--gray-400); padding: 20px;">Belum ada orang. Klik "Tambah Orang" untuk mulai.</p>';
+        renderFormPeople();
         return;
     }
 
