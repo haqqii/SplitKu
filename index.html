@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SplitKu - Pelacak Pengeluaran Bersama</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/dark.css" id="darkStylesheet" disabled>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h1>🏠 SplitKu</h1>
+                    <p>Pelacak Pengeluaran Bersama</p>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <!-- Dark Mode Toggle -->
+                    <button onclick="toggleDarkMode()" id="darkModeBtn" style="background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 1.2rem;" title="Dark Mode">
+                        🌙
+                    </button>
+                    <!-- Export/Import Menu -->
+                    <div style="position: relative; display: inline-block;">
+                        <button onclick="toggleExportMenu()" style="background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+                            📥 Export/Import
+                        </button>
+                        <div id="exportMenu" style="display: none; position: absolute; right: 0; top: 100%; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; min-width: 180px; overflow: hidden;">
+                            <button onclick="exportToJSON()" style="width: 100%; padding: 10px 16px; border: none; background: none; text-align: left; cursor: pointer; color: #374151; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
+                                📄 Export JSON
+                            </button>
+                            <button onclick="exportToCSV()" style="width: 100%; padding: 10px 16px; border: none; background: none; text-align: left; cursor: pointer; color: #374151; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
+                                📊 Export CSV
+                            </button>
+                            <button onclick="triggerImport()" style="width: 100%; padding: 10px 16px; border: none; background: none; text-align: left; cursor: pointer; color: #374151; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
+                                📤 Import Data
+                            </button>
+                            <div style="border-top: 1px solid #e5e7eb; margin: 4px 0;"></div>
+                            <button onclick="resetAllData()" style="width: 100%; padding: 10px 16px; border: none; background: none; text-align: left; cursor: pointer; color: #dc2626; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
+                                🗑️ Reset Semua
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Dashboard -->
+        <div id="dashboard" class="card" style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h2 style="margin: 0;">📊 Dashboard</h2>
+                <button onclick="toggleDashboard()" id="dashboardToggleBtn" style="background: var(--gray-200); color: var(--gray-700); border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">👁️ Sembunyikan</button>
+            </div>
+            <div id="dashboardContent">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                <div class="stat-card" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 16px; border-radius: 10px;">
+                    <div class="stat-value" style="font-size: 1.5rem; font-weight: 700; color: #92400e;" id="statTotalMonth">Rp 0</div>
+                    <div class="stat-label" style="font-size: 0.85rem; color: #b45309;">Total Bulan Ini</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); padding: 16px; border-radius: 10px;">
+                    <div class="stat-value" style="font-size: 1.5rem; font-weight: 700; color: #1e40af;" id="statPending">Rp 0</div>
+                    <div class="stat-label" style="font-size: 0.85rem; color: #1d4ed8;">Belum Settle</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); padding: 16px; border-radius: 10px;">
+                    <div class="stat-value" style="font-size: 1.5rem; font-weight: 700; color: #047857;" id="statSettled">0</div>
+                    <div class="stat-label" style="font-size: 0.85rem; color: #059669;">Transaksi Settle</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); padding: 16px; border-radius: 10px;">
+                    <div class="stat-value" style="font-size: 1.5rem; font-weight: 700; color: #9d174d;" id="statTopPayer">-</div>
+                    <div class="stat-label" style="font-size: 0.85rem; color: #be185d;">Paling Banyak Bayar</div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                <div class="chart-container" style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px;">
+                    <h4 style="margin-bottom: 12px; color: #374151; font-size: 0.95rem;">📈 Pengeluaran per Kategori</h4>
+                    <div style="display: flex; justify-content: center;">
+                        <canvas id="categoryChart" style="max-width: 200px; max-height: 200px;"></canvas>
+                    </div>
+                    <div id="categoryLegend" style="margin-top: 12px;"></div>
+                </div>
+                <div class="chart-container" style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px;">
+                    <h4 style="margin-bottom: 12px; color: #374151; font-size: 0.95rem;">👥 Pengeluaran per Orang</h4>
+                    <canvas id="personChart" style="max-height: 180px;"></canvas>
+                    <div id="personLegend" style="margin-top: 12px;"></div>
+                </div>
+            </div>
+        </div>
+
+    <!-- Kelola Orang -->
+    <div class="container">
+        <div class="card" style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h2 style="margin: 0; border: none; padding: 0;">👥 Kelola Orang</h2>
+                <button onclick="addPerson()" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">+ Tambah Orang</button>
+            </div>
+            <div id="peopleList"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="grid">
+            <!-- Settlement Card -->
+            <div class="card" style="grid-column: 1 / -1;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2 style="margin: 0;">🔄 Penyelesaian</h2>
+                    <button onclick="downloadSettlementImage()" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 0.9rem;">📥 Download Penyelesaian</button>
+                </div>
+                <ul class="settlement-list" id="settlementList">
+                </ul>
+            </div>
+        </div>
+
+        <!-- Add/Edit Transaction -->
+        <div class="card" style="margin-top: 20px;" id="transactionFormCard">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h2 id="formTitle" style="margin: 0; border: none; padding: 0;">➕ Tambah Transaksi Baru</h2>
+                <button type="button" id="cancelEditBtn" onclick="cancelEdit()" style="display: none; padding: 6px 12px; background: var(--gray-400); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">✕ Batal</button>
+            </div>
+            <form id="addTransactionForm">
+                <input type="hidden" id="editTransactionId" value="">
+                <!-- Main expense info -->
+                <div class="form-section">
+                    <h3>Informasi Pembayaran</h3>
+                    <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                        <div class="form-group">
+                            <label for="description">Deskripsi</label>
+                            <input type="text" id="description" placeholder="Contoh: Makan Siang" required maxlength="200">
+                        </div>
+                        <div class="form-group">
+                            <label for="payer">Yang Membayar (Payer)</label>
+                            <select id="payer" required>
+                                <option value="">Pilih...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="category">Kategori</label>
+                            <select id="category" required>
+                                <option value="makan">🍔 Makan</option>
+                                <option value="transport">🚗 Transport</option>
+                                <option value="rumah">🏠 Rumah</option>
+                                <option value="hiburan">🎮 Hiburan</option>
+                                <option value="belanja">🛒 Belanja</option>
+                                <option value="kesehatan">💊 Kesehatan</option>
+                                <option value="lainnya">📦 Lainnya</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="transactionDate">Tanggal</label>
+                            <input type="date" id="transactionDate" required>
+                        </div>
+                    </div>
+                    <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-top: 12px;">
+                        <div class="form-group">
+                            <label for="totalAmount">Total Bill (Rp) - Auto</label>
+                            <input type="number" id="totalAmount" placeholder="Akan dihitung otomatis" disabled style="background: var(--gray-100);">
+                            <span id="autoTotal" style="font-size: 0.8rem; color: var(--gray-500);">Rp 0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Split details -->
+                <div class="form-section">
+                    <h3>Detail Split - Siapa yang harus ganti?</h3>
+                    <div class="checkbox-group" id="splitCheckboxes">
+                        <!-- Checkboxes will be generated by JS -->
+                    </div>
+
+                    <div id="splitAmounts" class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+                        <!-- Split amount inputs will be added here -->
+                    </div>
+                </div>
+
+                <!-- Biaya Tambahan -->
+                <div class="form-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3>Biaya Tambahan (Opsional)</h3>
+                        <button type="button" onclick="addExtraCostField()" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">+ Tambah Biaya</button>
+                    </div>
+                    <div id="extraCostsContainer">
+                        <!-- Extra cost fields will be added here -->
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <div class="form-section">
+                <button type="submit" class="btn-primary" id="submitBtn">Tambah Transaksi</button>
+            </form>
+        </div>
+
+        <!-- Transactions List with Filters -->
+        <div class="card" style="margin-top: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                <h2 style="margin: 0;">📋 Daftar Transaksi</h2>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <input type="text" id="searchText" onkeyup="renderTransactions()" placeholder="🔍 Cari..." style="padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 4px; font-size: 0.85rem; min-width: 120px;">
+                    <select id="filterCategory" onchange="renderTransactions()" style="padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 4px; font-size: 0.85rem;">
+                        <option value="">Semua Kategori</option>
+                        <option value="makan">🍔 Makan</option>
+                        <option value="transport">🚗 Transport</option>
+                        <option value="rumah">🏠 Rumah</option>
+                        <option value="hiburan">🎮 Hiburan</option>
+                        <option value="belanja">🛒 Belanja</option>
+                        <option value="kesehatan">💊 Kesehatan</option>
+                        <option value="lainnya">📦 Lainnya</option>
+                    </select>
+                    <input type="date" id="filterDateStart" onchange="renderTransactions()" style="padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 4px; font-size: 0.85rem;">
+                    <span style="color: #9ca3af;">-</span>
+                    <input type="date" id="filterDateEnd" onchange="renderTransactions()" style="padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 4px; font-size: 0.85rem;">
+                    <select id="filterStatus" onchange="renderTransactions()" style="padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 4px; font-size: 0.85rem;">
+                        <option value="">Semua Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="settled">Settled</option>
+                    </select>
+                    <button onclick="showHistory()" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">📋 Riwayat</button>
+                </div>
+            </div>
+            <div style="max-height: 500px; overflow-y: auto;">
+                <table class="transactions-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 30px;">#</th>
+                            <th>Tanggal</th>
+                            <th>Deskripsi</th>
+                            <th>Kategori</th>
+                            <th>Pembayar</th>
+                            <th>Total</th>
+                            <th>Detail</th>
+                            <th>Status</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionsBody">
+                    </tbody>
+                </table>
+            </div>
+            <div id="transactionsPagination" style="display: flex; justify-content: center; gap: 8px; margin-top: 15px;"></div>
+        </div>
+
+        <!-- Transaction History -->
+        <div class="card" id="historyCard" style="margin-top: 20px; display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 style="margin: 0;">📋 Riwayat Transaksi (Settled)</h2>
+                <button onclick="hideHistory()" style="background: #6b7280; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">✕ Tutup</button>
+            </div>
+            <table class="transactions-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30px;">#</th>
+                        <th>Tanggal</th>
+                        <th>Deskripsi</th>
+                        <th>Kategori</th>
+                        <th>Pembayar</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody">
+                </tbody>
+            </table>
+            <div id="historyPagination" style="display: flex; justify-content: center; gap: 8px; margin-top: 15px;"></div>
+        </div>
+    </div>
+
+    <!-- Person History Modal -->
+    <div class="modal-overlay" id="personHistoryModal">
+        <div class="modal" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+            <h3 id="personHistoryTitle" style="margin-bottom: 16px;">📋 Histori - </h3>
+            <div id="personHistoryContent"></div>
+            <div style="margin-top: 20px;">
+                <button onclick="closePersonHistoryModal()" style="background: var(--gray-200); color: var(--gray-700); border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; width: 100%;">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Budget Modal -->
+    <div class="modal-overlay" id="budgetModal">
+        <div class="modal" style="max-width: 500px;">
+            <h3 style="margin-bottom: 16px;">💰 Atur Budget Bulanan</h3>
+            <div id="budgetFormContent"></div>
+            <div style="margin-top: 20px; display: flex; gap: 12px;">
+                <button onclick="saveBudgets()" style="flex: 1; background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 600;">Simpan</button>
+                <button onclick="closeBudgetModal()" style="flex: 1; background: var(--gray-200); color: var(--gray-700); border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 0.95rem;">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-backdrop" onclick="closeConfirmModal()"></div>
+        <div class="modal-content" style="text-align: center;">
+            <div style="background: #fee2e2; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                <span style="font-size: 28px;">⚠️</span>
+            </div>
+            <h3 style="margin-bottom: 8px;">Reset Data?</h3>
+            <p style="color: var(--gray-500); margin-bottom: 24px;">Semua transaksi akan dihapus. Apakah Anda yakin?</p>
+            <div class="modal-footer" style="justify-content: center;">
+                <button onclick="closeConfirmModal()" style="padding: 12px 24px; background: var(--gray-100); color: var(--gray-600); border: none; border-radius: 10px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Batal</button>
+                <button onclick="confirmReset()" style="padding: 12px 24px; background: #ef4444; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Ya, Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Alert Modal -->
+    <div id="alertModal" class="modal">
+        <div class="modal-backdrop" onclick="closeAlertModal()"></div>
+        <div class="modal-content" style="text-align: center;">
+            <div style="background: #fef3c7; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                <span style="font-size: 28px;">⚠️</span>
+            </div>
+            <h3 style="margin-bottom: 8px;">Peringatan</h3>
+            <p id="alertMessage" style="color: var(--gray-500); margin-bottom: 24px;"></p>
+            <div class="modal-footer" style="justify-content: center;">
+                <button onclick="closeAlertModal()" style="padding: 12px 32px; background: var(--primary); color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Delete Modal -->
+    <div id="confirmDeleteModal" class="modal">
+        <div class="modal-backdrop" onclick="closeConfirmDeleteModal()"></div>
+        <div class="modal-content" style="text-align: center;">
+            <div style="width: 70px; height: 70px; background: #fee2e2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;">
+                <span style="font-size: 32px;">🗑️</span>
+            </div>
+            <h3 style="margin-bottom: 8px; color: #1f2937;">Hapus Transaksi?</h3>
+            <p id="confirmDeleteMessage" style="color: #6b7280; margin-bottom: 24px; line-height: 1.5;">Apakah Anda yakin ingin menghapus transaksi ini?</p>
+            <div style="display: flex; gap: 12px;">
+                <button onclick="closeConfirmDeleteModal()" style="flex: 1; background: #f3f4f6; color: #374151; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Batal</button>
+                <button onclick="confirmDeleteTransaction()" style="flex: 1; background: #dc2626; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Tambah Orang -->
+    <div id="addPersonModal" class="modal">
+        <div class="modal-backdrop" onclick="closeAddPersonModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Orang Baru</h3>
+                <button onclick="closeAddPersonModal()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500; color: var(--gray-700);">Nama:</label>
+                <input type="text" id="newPersonName" placeholder="Masukkan nama"
+                       style="width: 100%; padding: 12px 14px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem; box-sizing: border-box; transition: border-color 0.2s;"
+                       maxlength="50" autocomplete="off">
+                <p id="addPersonError" style="color: var(--danger); font-size: 0.85rem; margin-top: 8px; display: none;"></p>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeAddPersonModal()" style="padding: 12px 24px; background: var(--gray-100); color: var(--gray-600); border: none; border-radius: 10px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Batal</button>
+                <button onclick="confirmAddPerson()" style="padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Tambah</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Hapus Orang -->
+    <div id="deletePersonModal" class="modal">
+        <div class="modal-backdrop" onclick="closeDeletePersonModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Hapus Orang</h3>
+                <button onclick="closeDeletePersonModal()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <div style="background: #fee2e2; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                    <span style="font-size: 28px;">!</span>
+                </div>
+                <p style="margin: 0 0 8px; color: var(--gray-800); font-size: 1.1rem;">
+                    Hapus <strong id="deletePersonName"></strong>?
+                </p>
+                <p style="margin: 0; font-size: 0.9rem; color: var(--gray-500);">
+                    Data transaksi terkait mungkin terpengaruh.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeDeletePersonModal()" style="padding: 12px 24px; background: var(--gray-100); color: var(--gray-600); border: none; border-radius: 10px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Batal</button>
+                <button onclick="confirmDeletePerson()" style="padding: 12px 24px; background: #ef4444; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Scripts - Order matters! -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="js/validation.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/app.js"></script>
+
+    <!-- PWA Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed:', err));
+            });
+        }
+    </script>
+</body>
+</html>

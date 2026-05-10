@@ -1,0 +1,434 @@
+/* ============================================================================
+   DARK MODE THEME - Dark Theme CSS Variables
+   ============================================================================ */
+
+[data-theme="dark"] {
+    /* Background colors */
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-card: #1e293b;
+    --bg-hover: #334155;
+    --bg-input: #0f172a;
+
+    /* Text colors */
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --text-inverse: #0f172a;
+
+    /* Border colors */
+    --border-color: #334155;
+    --border-light: #475569;
+
+    /* Status colors (keep original) */
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+
+    /* Chart colors (adjust for dark bg) */
+    --chart-bg: #1e293b;
+}
+
+/* Dark mode body */
+[data-theme="dark"] body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+/* Dark mode header */
+[data-theme="dark"] header {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] header h1,
+[data-theme="dark"] header p {
+    color: var(--text-primary);
+}
+
+/* Dark mode container */
+[data-theme="dark"] .container {
+    background: transparent;
+}
+
+/* Dark mode cards */
+[data-theme="dark"] .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .card h2 {
+    color: var(--text-primary);
+    border-bottom-color: var(--border-color);
+}
+
+/* Dark mode tables */
+[data-theme="dark"] .transactions-table {
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .transactions-table th,
+[data-theme="dark"] .transactions-table td {
+    border-bottom-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .transactions-table th {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .transactions-table tr:hover {
+    background: var(--bg-hover);
+}
+
+[data-theme="dark"] .transactions-table .amount {
+    color: var(--text-primary);
+}
+
+/* Dark mode form elements */
+[data-theme="dark"] .form-group label {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group select {
+    background: var(--bg-input);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .form-group input:focus,
+[data-theme="dark"] .form-group select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+[data-theme="dark"] .form-group input::placeholder {
+    color: var(--text-muted);
+}
+
+[data-theme="dark"] .form-group input:disabled {
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+}
+
+/* Dark mode checkboxes */
+[data-theme="dark"] .checkbox-item {
+    background: var(--bg-input);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .checkbox-item:hover {
+    background: var(--bg-hover);
+}
+
+[data-theme="dark"] .checkbox-item.checked {
+    background: rgba(37, 99, 235, 0.2);
+    border-color: var(--primary);
+}
+
+[data-theme="dark"] .checkbox-item .checkmark {
+    border-color: var(--border-light);
+}
+
+/* Dark mode split details */
+[data-theme="dark"] .split-details {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .split-details-header h4 {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .split-card {
+    background: var(--bg-input);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .split-card .person-name {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .split-card .split-amount {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .split-card .items-list {
+    background: var(--bg-secondary);
+}
+
+[data-theme="dark"] .split-card .item-name {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .split-card .item-amount {
+    color: var(--text-primary);
+}
+
+/* Dark mode total section */
+[data-theme="dark"] .total-section {
+    background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+}
+
+[data-theme="dark"] .total-section .total-label {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .total-section .amount {
+    color: var(--text-primary);
+}
+
+/* Dark mode extra costs */
+[data-theme="dark"] .extra-costs-section {
+    background: linear-gradient(135deg, #292524 0%, #1c1917 100%);
+    border-color: #44403c;
+}
+
+[data-theme="dark"] .extra-costs-header {
+    color: #fbbf24;
+}
+
+[data-theme="dark"] .extra-cost-item {
+    background: var(--bg-input);
+}
+
+[data-theme="dark"] .extra-cost-name {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .extra-cost-calc {
+    color: var(--text-primary);
+}
+
+/* Dark mode person split section */
+[data-theme="dark"] .person-split-section {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .person-split-header {
+    border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .person-split-header .person-name {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .person-split-header .person-total {
+    color: #60a5fa;
+}
+
+[data-theme="dark"] .item-row {
+    background: transparent;
+}
+
+/* Dark mode settlement */
+[data-theme="dark"] .settlement-item {
+    background: var(--bg-secondary);
+    border-left-color: var(--warning);
+}
+
+[data-theme="dark"] .settlement-item.paid {
+    background: rgba(16, 185, 129, 0.1);
+    border-left-color: var(--success);
+}
+
+[data-theme="dark"] .settlement-item .from {
+    color: #f87171;
+}
+
+[data-theme="dark"] .settlement-item .to {
+    color: #34d399;
+}
+
+[data-theme="dark"] .settlement-item .amount {
+    color: var(--text-primary);
+}
+
+/* Dark mode status badges */
+[data-theme="dark"] .status-badge.status-pending {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+
+[data-theme="dark"] .status-badge.status-settled {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+/* Dark mode person badges */
+[data-theme="dark"] .person-Qulub { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+[data-theme="dark"] .person-Haqqi { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+[data-theme="dark"] .person-Yohn { background: rgba(52, 211, 153, 0.2); color: #34d399; }
+[data-theme="dark"] .person-Lintang { background: rgba(236, 72, 153, 0.2); color: #f472b6; }
+
+/* Dark mode expanded details */
+[data-theme="dark"] .expanded-details {
+    background: var(--bg-secondary);
+}
+
+/* Dark mode modals */
+[data-theme="dark"] .modal-overlay {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="dark"] .modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .modal h3 {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .modal p {
+    color: var(--text-secondary);
+}
+
+/* Dark mode buttons */
+[data-theme="dark"] .btn-cancel {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .btn-cancel:hover {
+    background: var(--border-light);
+}
+
+/* Dark mode toast */
+[data-theme="dark"] .toast {
+    background: var(--success);
+}
+
+/* Dark mode no-data */
+[data-theme="dark"] .no-data {
+    color: var(--text-muted);
+}
+
+/* Dark mode form section */
+[data-theme="dark"] .form-section h3 {
+    color: var(--text-secondary);
+}
+
+/* Dark mode total display */
+[data-theme="dark"] .total-display {
+    color: var(--text-primary);
+    border-top-color: var(--border-color);
+}
+
+/* Dark mode pagination */
+[data-theme="dark"] #transactionsPagination button,
+[data-theme="dark"] #historyPagination button {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] #transactionsPagination button:hover,
+[data-theme="dark"] #historyPagination button:hover {
+    background: var(--bg-hover);
+}
+
+/* Dark mode filter inputs */
+[data-theme="dark"] #filterDate,
+[data-theme="dark"] #filterHistoryDate {
+    background: var(--bg-input);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    color-scheme: dark;
+}
+
+/* Dark mode dashboard */
+[data-theme="dark"] .stat-card {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .stat-card .stat-value {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .stat-card .stat-label {
+    color: var(--text-secondary);
+}
+
+/* Dark mode progress bar */
+[data-theme="dark"] .budget-progress {
+    background: var(--bg-secondary);
+}
+
+[data-theme="dark"] .budget-progress .budget-bar {
+    background: var(--bg-hover);
+}
+
+[data-theme="dark"] .budget-progress .budget-label {
+    color: var(--text-secondary);
+}
+
+/* Dark mode scrollbar */
+[data-theme="dark"] ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: 4px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* Dark mode chart containers */
+[data-theme="dark"] .chart-container {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+/* Dark mode dropdown in select */
+[data-theme="dark"] select option {
+    background: var(--bg-card);
+    color: var(--text-primary);
+}
+
+/* Dark mode people list */
+[data-theme="dark"] #peopleList input {
+    background: var(--bg-input);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+/* Dark mode history card */
+[data-theme="dark"] #historyCard {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+}
+
+/* Transition for smooth theme switch */
+body,
+.card,
+header,
+.modal,
+.split-card,
+.split-details,
+.total-section,
+.extra-costs-section,
+.person-split-section,
+.settlement-item,
+.form-group input,
+.form-group select {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
