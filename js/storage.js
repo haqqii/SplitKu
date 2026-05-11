@@ -68,7 +68,7 @@ const Storage = {
     // Import from JSON, CSV, or XLSX file
     importJSON: function(file) {
         const fileName = file.name.toLowerCase();
-        const isXLSX = fileName.endsWith('.xlsx');
+        const isXLSX = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
 
         return new Promise((resolve, reject) => {
             if (isXLSX) {
@@ -522,7 +522,7 @@ const Storage = {
             input = document.createElement('input');
             input.type = 'file';
             input.id = 'importFileInput';
-            input.accept = '.json,.csv,.xlsx';
+            input.accept = '.json,.csv,.xlsx,.xls';
             input.style.display = 'none';
             input.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
