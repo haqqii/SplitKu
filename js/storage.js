@@ -113,8 +113,9 @@ const Storage = {
                         // Get current people for split matching
                         const currentPeople = this.get(this.KEYS.PEOPLE) || [];
 
-                        // Check if it's CSV (starts with ID,Tanggal or similar)
-                        if (content.startsWith('ID,') || content.startsWith('"ID"')) {
+                        // Check if it's CSV (starts with ID followed by delimiter)
+                        const isCSV = /^ID[\s,\t"]/.test(content) || content.startsWith('"ID"');
+                        if (isCSV) {
                             // Parse CSV
                             data = this.parseCSV(content, currentPeople);
                         } else {
@@ -166,17 +167,30 @@ const Storage = {
     // Parse CSV to transactions format
     parseCSV: function(csvContent, people) {
         const lines = csvContent.split('\n');
-        const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+        const headerLine = lines[0];
 
-        // Find column indices
-        const idIdx = headers.indexOf('ID');
-        const dateIdx = headers.indexOf('Tanggal');
-        const descIdx = headers.indexOf('Deskripsi');
-        const catIdx = headers.indexOf('Kategori');
-        const payerIdx = headers.indexOf('Pembayar');
-        const totalIdx = headers.indexOf('Total');
-        const splitIdx = headers.indexOf('Split');
-        const statusIdx = headers.indexOf('Status');
+        // Detect delimiter (comma, tab, or multiple spaces)
+        let delimiter = ',';
+        if (headerLine.includes('\t')) {
+            delimiter = '\t';
+        } else if (/ID\s{2,}|ID\s{2,}Tanggal/.test(headerLine)) {
+            delimiter = /\s{2,}/;
+        }
+
+        // Split headers by detected delimiter
+        const headers = headerLine.split(delimiter).map(h => h.replace(/"/g, '').trim());
+
+        // Find column indices (case-insensitive)
+        const findIdx = (name) => headers.findIndex(h => h.toLowerCase() === name.toLowerCase());
+
+        const idIdx = findIdx('ID');
+        const dateIdx = findIdx('Tanggal');
+        const descIdx = findIdx('Deskripsi');
+        const catIdx = findIdx('Kategori');
+        const payerIdx = findIdx('Pembayar');
+        const totalIdx = findIdx('Total');
+        const splitIdx = findIdx('Split');
+        const statusIdx = findIdx('Status');
 
         const transactions = [];
         let nextId = 1;
@@ -185,29 +199,35 @@ const Storage = {
             const line = lines[i].trim();
             if (!line) continue;
 
-            // Simple CSV parsing (handle quoted fields)
-            const values = this.parseCSVLine(line);
+            // Parse line by detected delimiter
+            let values;
+            if (delimiter instanceof RegExp) {
+                values = line.split(delimiter).map(v => v.trim());
+            } else {
+                values = this.parseCSVLine(line);
+            }
 
-            if (values.length < 5) continue;
+            if (values.length < 3) continue;
 
-            const id = values[idIdx] || ('t' + (Date.now() + i));
-            const date = values[dateIdx] || new Date().toISOString().split('T')[0];
-            const description = values[descIdx]?.replace(/^"|"$/g, '') || 'Imported';
-            const category = values[catIdx]?.replace(/^"|"$/g, '') || 'lainnya';
-            const payer = values[payerIdx]?.replace(/^"|"$/g, '') || '';
+            const id = (idIdx >= 0 && values[idIdx]) ? values[idIdx] : ('t' + (Date.now() + i));
+            const dateRaw = (dateIdx >= 0 && values[dateIdx]) ? values[dateIdx].replace(/^"|"$/g, '').trim() : '';
+            const date = this.parseDate(dateRaw) || new Date().toISOString().split('T')[0];
+            const description = (descIdx >= 0 && values[descIdx]) ? values[descIdx].replace(/^"|"$/g, '').trim() : '';
+            const category = (catIdx >= 0 && values[catIdx]) ? values[catIdx].replace(/^"|"$/g, '').trim() : 'lainnya';
+            const payer = (payerIdx >= 0 && values[payerIdx]) ? values[payerIdx].replace(/^"|"$/g, '').trim() : '';
             const payerKey = payer.toLowerCase().replace(/\s+/g, '');
-            const totalAmount = parseFloat(values[totalIdx]) || 0;
-
-            // Parse split data - pass people for key matching
-            const splitData = values[splitIdx]?.replace(/^"|"$/g, '') || '';
+            const totalAmount = (totalIdx >= 0 && values[totalIdx]) ? parseFloat(values[totalIdx].replace(/[^0-9.-]/g, '')) || 0 : 0;
+            const splitData = (splitIdx >= 0 && values[splitIdx]) ? values[splitIdx].replace(/^"|"$/g, '').trim() : '';
             const split = this.parseCSVSplit(splitData, totalAmount, payerKey, people);
+            const status = (statusIdx >= 0 && values[statusIdx]) ? values[statusIdx].replace(/^"|"$/g, '').trim() : 'Pending';
 
-            const status = values[statusIdx]?.replace(/^"|"$/g, '') || 'Pending';
+            // Skip if no valid data
+            if (!description && totalAmount === 0) continue;
 
             transactions.push({
                 id,
                 date,
-                description,
+                description: description || 'Imported',
                 category,
                 payer,
                 payerKey,
@@ -228,6 +248,43 @@ const Storage = {
             people: null,
             nextId: nextId
         };
+    },
+
+    // Parse date from various formats
+    parseDate: function(dateStr) {
+        if (!dateStr) return null;
+        dateStr = dateStr.trim();
+
+        // Already ISO format (YYYY-MM-DD)
+        if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+            return dateStr.split('T')[0];
+        }
+
+        // DD/MM/YYYY or DD-MM-YYYY
+        const ddmmyyyy = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+        if (ddmmyyyy) {
+            const [, d, m, y] = ddmmyyyy;
+            return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+        }
+
+        // MM/DD/YYYY (US format)
+        const mmddyyyy = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (mmddyyyy) {
+            const [, m, d, y] = mmddyyyy;
+            // Check if month > 12 (would indicate DD/MM format)
+            if (parseInt(m) > 12) {
+                return `${y}-${d.padStart(2, '0')}-${m.padStart(2, '0')}`;
+            }
+            return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+        }
+
+        // Try native Date parsing as fallback
+        const parsed = new Date(dateStr);
+        if (!isNaN(parsed.getTime())) {
+            return parsed.toISOString().split('T')[0];
+        }
+
+        return null;
     },
 
     // Parse a single CSV line handling quoted fields
@@ -333,18 +390,29 @@ const Storage = {
                 if (val && typeof val === 'object') {
                     val = val.v || val.w || '';
                 }
+                // Handle Excel date serial numbers
+                if (typeof val === 'number' && val > 25569 && val < 2958465) {
+                    // Excel date serial to JS date
+                    const excelDate = val;
+                    const date = new Date((excelDate - 25569) * 86400 * 1000);
+                    return date.toISOString().split('T')[0];
+                }
                 return String(val || '').trim();
             };
 
             const id = getVal(idIdx) || ('t' + (Date.now() + i));
-            const date = getVal(dateIdx) || new Date().toISOString().split('T')[0];
-            const description = getVal(descIdx) || 'Imported';
+            const dateRaw = getVal(dateIdx);
+            const date = this.parseDate(dateRaw) || new Date().toISOString().split('T')[0];
+            const description = getVal(descIdx);
             const category = getVal(catIdx) || 'lainnya';
             const payer = getVal(payerIdx) || '';
             const payerKey = payer.toLowerCase().replace(/\s+/g, '');
-            const totalAmount = parseFloat(getVal(totalIdx)) || 0;
+            const totalAmount = parseFloat(getVal(totalIdx).replace(/[^0-9.-]/g, '')) || 0;
             const splitStr = getVal(splitIdx);
             const status = getVal(statusIdx);
+
+            // Skip empty rows
+            if (!description && totalAmount === 0) continue;
 
             // Parse split - pass people for key matching
             const split = this.parseCSVSplit(splitStr, totalAmount, payerKey, people);
@@ -352,7 +420,7 @@ const Storage = {
             transactions.push({
                 id,
                 date,
-                description,
+                description: description || 'Imported',
                 category,
                 payer,
                 payerKey,
