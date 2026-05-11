@@ -1702,23 +1702,99 @@ function downloadSettlementImage() {
         return;
     }
 
-    // Simple implementation - download as text
-    let content = 'PENYELESAIAN HUTANG\n';
-    content += '====================\n\n';
+    const padding = 25;
+    const width = 480;
+    const headerHeight = 70;
+    const itemHeight = 70;
+    const footerHeight = 50;
+    const height = headerHeight + (settlements.length * itemHeight) + footerHeight + padding * 2;
 
-    settlements.forEach(s => {
-        content += `${getPersonName(s.from)} bayar ke ${getPersonName(s.to)}: ${formatCurrency(s.amount)}\n`;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = width;
+    canvas.height = height;
+
+    // Background
+    ctx.fillStyle = '#f9fafb';
+    ctx.fillRect(0, 0, width, height);
+
+    // Header gradient
+    const gradient = ctx.createLinearGradient(0, 0, width, 0);
+    gradient.addColorStop(0, '#4f46e5');
+    gradient.addColorStop(1, '#7c3aed');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, headerHeight);
+
+    // Header text
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Penyelesaian Hutang', width / 2, 32);
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillText('Harta Gono-Gini', width / 2, 50);
+
+    // Content
+    let y = headerHeight + padding + 10;
+
+    settlements.forEach((s, index) => {
+        // Card background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(padding, y, width - padding * 2, itemHeight - 10);
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(padding, y, width - padding * 2, itemHeight - 10);
+
+        // Left accent
+        ctx.fillStyle = index % 2 === 0 ? '#4f46e5' : '#7c3aed';
+        ctx.fillRect(padding, y, 4, itemHeight - 10);
+
+        // Person names and arrow
+        ctx.fillStyle = '#1f2937';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(getPersonName(s.from), padding + 15, y + 25);
+
+        ctx.fillStyle = '#6b7280';
+        ctx.font = '12px sans-serif';
+        ctx.fillText('bayar ke', padding + 15 + ctx.measureText(getPersonName(s.from)).width + 10, y + 25);
+
+        const toNameX = padding + 15 + ctx.measureText(getPersonName(s.from)).width + 10 + ctx.measureText('bayar ke ').width + 5;
+        ctx.fillStyle = '#4f46e5';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillText(getPersonName(s.to), toNameX, y + 25);
+
+        // Amount
+        ctx.fillStyle = '#dc2626';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(formatCurrency(s.amount), width - padding - 15, y + 30);
+
+        // Items breakdown (if any)
+        if (s.items && s.items.length > 0) {
+            ctx.fillStyle = '#6b7280';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'left';
+            const itemsText = s.items.slice(0, 3).map(item => '• ' + item.name).join(', ');
+            const truncatedText = itemsText.length > 50 ? itemsText.substring(0, 47) + '...' : itemsText;
+            ctx.fillText(truncatedText, padding + 15, y + 50);
+        }
+
+        y += itemHeight;
     });
 
-    content += '\nGenerated: ' + new Date().toLocaleDateString('id-ID');
+    // Footer
+    const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '9px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Generated: ' + dateStr, width / 2, height - 15);
 
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
+    // Download
     const link = document.createElement('a');
-    link.href = url;
-    link.download = 'penyelesaian-hutang.txt';
+    link.download = `penyelesaian-hutang-${new Date().toISOString().split('T')[0]}.png`;
+    link.href = canvas.toDataURL('image/png');
     link.click();
-    URL.revokeObjectURL(url);
 
     showToast('Berhasil download');
 }

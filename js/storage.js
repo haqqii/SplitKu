@@ -390,19 +390,22 @@ const Storage = {
                 if (val && typeof val === 'object') {
                     val = val.v || val.w || '';
                 }
-                // Handle Excel date serial numbers
-                if (typeof val === 'number' && val > 25569 && val < 2958465) {
-                    // Excel date serial to JS date
-                    const excelDate = val;
-                    const date = new Date((excelDate - 25569) * 86400 * 1000);
-                    return date.toISOString().split('T')[0];
-                }
                 return String(val || '').trim();
             };
 
             const id = getVal(idIdx) || ('t' + (Date.now() + i));
             const dateRaw = getVal(dateIdx);
-            const date = this.parseDate(dateRaw) || new Date().toISOString().split('T')[0];
+            // Handle Excel date serial numbers for date column
+            let parsedDate = dateRaw;
+            if (dateIdx >= 0 && rows[i][dateIdx] && typeof rows[i][dateIdx] === 'number') {
+                const val = rows[i][dateIdx];
+                if (val > 25569 && val < 2958465) {
+                    // Excel date serial to JS date
+                    const date = new Date((val - 25569) * 86400 * 1000);
+                    parsedDate = date.toISOString().split('T')[0];
+                }
+            }
+            const date = this.parseDate(parsedDate) || new Date().toISOString().split('T')[0];
             const description = getVal(descIdx);
             const category = getVal(catIdx) || 'lainnya';
             const payer = getVal(payerIdx) || '';
