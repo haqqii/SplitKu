@@ -34,7 +34,7 @@
                             <button onclick="exportToCSV()" style="width: 100%; padding: 10px 16px; border: none; background: none; text-align: left; cursor: pointer; color: #374151; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
                                 📊 Export CSV
                             </button>
-                            <button onclick="triggerImport()" style="width: 100%; padding: 10px 16px; border: none; background: none; text-align: left; cursor: pointer; color: #374151; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
+                            <button onclick="selectFileForImport()" style="width: 100%; padding: 10px 16px; border: none; background: none; text-align: left; cursor: pointer; color: #374151; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
                                 📤 Import Data
                             </button>
                             <div style="border-top: 1px solid #e5e7eb; margin: 4px 0;"></div>
@@ -317,6 +317,38 @@
             <p id="alertMessage" style="color: var(--gray-500); margin-bottom: 24px;"></p>
             <div class="modal-footer" style="justify-content: center;">
                 <button onclick="closeAlertModal()" style="padding: 12px 32px; background: var(--primary); color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Confirmation Modal -->
+    <div id="importConfirmModal" class="modal">
+        <div class="modal-backdrop" onclick="closeImportConfirmModal()"></div>
+        <div class="modal-content" style="text-align: center; max-width: 420px;">
+            <div style="width: 70px; height: 70px; background: #e0e7ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;">
+                <span style="font-size: 32px;">📥</span>
+            </div>
+            <h3 style="margin-bottom: 16px; color: #1f2937;">Import Data</h3>
+            <p style="color: #6b7280; margin-bottom: 20px; line-height: 1.5;">Pilih bagaimana data import akan ditambahkan:</p>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                <label id="importReplaceOption" style="display: flex; align-items: flex-start; gap: 12px; padding: 14px; border: 2px solid #e5e7eb; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onclick="selectImportMode('replace')">
+                    <input type="radio" name="importMode" value="replace" id="importModeReplace" style="margin-top: 3px;">
+                    <div style="text-align: left;">
+                        <div style="font-weight: 600; color: #1f2937; margin-bottom: 2px;">Ganti Semua</div>
+                        <div style="font-size: 0.85rem; color: #6b7280;">Hapus data lama, gunakan data import</div>
+                    </div>
+                </label>
+                <label id="importMergeOption" style="display: flex; align-items: flex-start; gap: 12px; padding: 14px; border: 2px solid #4f46e5; background: #eef2ff; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onclick="selectImportMode('merge')">
+                    <input type="radio" name="importMode" value="merge" id="importModeMerge" checked style="margin-top: 3px;">
+                    <div style="text-align: left;">
+                        <div style="font-weight: 600; color: #1f2937; margin-bottom: 2px;">Gabungkan</div>
+                        <div style="font-size: 0.85rem; color: #6b7280;">Tambahkan ke data yang sudah ada</div>
+                    </div>
+                </label>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <button onclick="closeImportConfirmModal()" style="flex: 1; background: #f3f4f6; color: #374151; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Batal</button>
+                <button onclick="confirmImport()" style="flex: 1; background: #4f46e5; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Import</button>
             </div>
         </div>
     </div>

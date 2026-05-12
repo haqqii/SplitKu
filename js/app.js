@@ -2,6 +2,8 @@
 // HARTA GONO-GINI - Main Application
 // ============================================================================
 
+console.log('app.js loading...');
+
 // Global error handler
 window.onerror = function(msg, url, line) {
     console.error('Error:', msg, 'at line', line);
@@ -82,6 +84,10 @@ function loadFromStorage() {
         const savedNextId = Storage.get(Storage.KEYS.NEXT_ID);
         const savedPeople = Storage.get(Storage.KEYS.PEOPLE);
 
+        console.log('loadFromStorage - savedTransactions:', savedTransactions);
+        console.log('loadFromStorage - savedNextId:', savedNextId);
+        console.log('loadFromStorage - savedPeople:', savedPeople);
+
         if (savedTransactions) transactions = savedTransactions;
         if (savedNextId) nextId = savedNextId;
         if (savedPeople) people = savedPeople;
@@ -161,6 +167,7 @@ function toggleExportMenu() {
         menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
     }
 }
+window.toggleExportMenu = toggleExportMenu;
 
 // Close export menu when clicking outside
 document.addEventListener('click', function(e) {
@@ -450,9 +457,13 @@ function calculateSettlements() {
             const items = typeof data === 'object' ? data.items : [];
 
             if (amount > 0) {
-                const key = `${person}-${t.payer}`;
+                // Normalize keys to lowercase for consistent matching
+                const fromKey = person.toLowerCase();
+                const toKey = t.payer.toLowerCase();
+                const key = `${fromKey}-${toKey}`;
+
                 if (!settlementMap[key]) {
-                    settlementMap[key] = { from: person, to: t.payer, amount: 0, items: [] };
+                    settlementMap[key] = { from: fromKey, to: toKey, originalFrom: person, originalTo: t.payer, amount: 0, items: [] };
                 }
                 settlementMap[key].amount += amount;
                 items.forEach(item => {
@@ -462,18 +473,25 @@ function calculateSettlements() {
         });
     });
 
+    console.log('Debug settlements - settlementMap:', JSON.stringify(settlementMap, null, 2));
+
     const finalSettlements = [];
     const processed = new Set();
 
     Object.values(settlementMap).forEach(s => {
         const reverseKey = `${s.to}-${s.from}`;
         const pairKey = [s.from, s.to].sort().join('-');
-        if (processed.has(pairKey)) return;
+        console.log('Processing:', s.from, '->', s.to, '=', s.amount, '| reverseKey:', reverseKey, '| pairKey:', pairKey);
+        if (processed.has(pairKey)) {
+            console.log('Already processed, skipping');
+            return;
+        }
         processed.add(pairKey);
 
         if (settlementMap[reverseKey]) {
             const reverse = settlementMap[reverseKey];
             const netAmount = s.amount - reverse.amount;
+            console.log('Found reverse:', reverse.from, '->', reverse.to, '=', reverse.amount, '| netAmount:', netAmount);
 
             if (netAmount > 0) {
                 finalSettlements.push({
@@ -487,11 +505,59 @@ function calculateSettlements() {
                 });
             }
         } else {
+            console.log('No reverse found, adding as-is');
             finalSettlements.push(s);
         }
     });
 
+    console.log('Debug settlements - finalSettlements:', JSON.stringify(finalSettlements, null, 2));
     return finalSettlements;
+}
+
+// Calculate net settlements (directional, after netting bidirectional payments)
+function calculateNetSettlements() {
+    // Build directional payment map
+    // Key format: "smallerKey-largerKey" to identify pairs
+    const paymentPairs = {};
+
+    transactions.forEach(t => {
+        const splitStatus = t.splitStatus || {};
+        Object.entries(t.split || {}).forEach(([person, data]) => {
+            if (person === t.payer) return;
+            if (splitStatus[person] === 'paid') return;
+
+            const amount = typeof data === 'number' ? data : data.amount;
+            if (amount > 0) {
+                // Create pair key (alphabetically sorted)
+                const keys = [person, t.payer].sort();
+                const pairKey = keys.join('-');
+
+                if (!paymentPairs[pairKey]) {
+                    paymentPairs[pairKey] = { a: keys[0], b: keys[1], aToB: 0, bToA: 0 };
+                }
+
+                // person pays t.payer
+                if (person === keys[0]) {
+                    paymentPairs[pairKey].aToB += amount;
+                } else {
+                    paymentPairs[pairKey].bToA += amount;
+                }
+            }
+        });
+    });
+
+    // Calculate net settlements
+    const settlements = [];
+    Object.values(paymentPairs).forEach(pair => {
+        const net = pair.aToB - pair.bToA;
+        if (net > 0) {
+            settlements.push({ from: pair.a, to: pair.b, amount: net, items: [] });
+        } else if (net < 0) {
+            settlements.push({ from: pair.b, to: pair.a, amount: Math.abs(net), items: [] });
+        }
+    });
+
+    return settlements;
 }
 
 // ============================================================================
@@ -571,9 +637,12 @@ function renderDashboard() {
     if (statTopPayer) statTopPayer.textContent = topPayer;
 
     // Render charts
+    console.log('renderDashboard - people:', people.length, people);
+    console.log('renderDashboard - transactions:', transactions.length);
     if (window.Charts) {
         const categoryData = Charts.getCategoryBreakdown(transactions);
         const personData = Charts.getPersonSpending(transactions, people);
+        console.log('renderDashboard - personData:', personData);
 
         Charts.drawPieChart('categoryChart', categoryData, { donut: true });
         Charts.drawBarChart('personChart', personData);
@@ -671,6 +740,14 @@ function closePersonHistoryModal() {
 // SETTLEMENT RENDERING
 // ============================================================================
 
+let settlementsExpanded = false;
+const SETTLEMENTS_INITIAL_COUNT = 5;
+
+function toggleSettlements() {
+    settlementsExpanded = !settlementsExpanded;
+    renderSettlements();
+}
+
 function renderSettlements() {
     const settlements = calculateSettlements();
     const container = document.getElementById('settlementList');
@@ -681,7 +758,11 @@ function renderSettlements() {
         return;
     }
 
-    container.innerHTML = settlements.map(s => `
+    const visibleSettlements = settlementsExpanded
+        ? settlements
+        : settlements.slice(0, SETTLEMENTS_INITIAL_COUNT);
+
+    container.innerHTML = visibleSettlements.map(s => `
         <li class="settlement-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
             <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
                 <span>
@@ -706,6 +787,29 @@ function renderSettlements() {
             ` : ''}
         </li>
     `).join('');
+
+    // Add "Show more/less" button if there are more settlements
+    if (settlements.length > SETTLEMENTS_INITIAL_COUNT) {
+        container.innerHTML += `
+            <li style="text-align: center; padding: 12px; border-top: 1px solid #e5e7eb;">
+                <button onclick="toggleSettlements()" style="
+                    background: none;
+                    border: none;
+                    color: #4f46e5;
+                    font-weight: 600;
+                    cursor: pointer;
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                    transition: background 0.2s;
+                " onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='none'">
+                    ${settlementsExpanded
+                        ? `▲ Sembunyikan (${settlements.length - SETTLEMENTS_INITIAL_COUNT} lainnya)`
+                        : `▼ Lihat semua (${settlements.length} settlements)`
+                    }
+                </button>
+            </li>
+        `;
+    }
 }
 
 // ============================================================================
@@ -823,6 +927,10 @@ function renderTransactions() {
 }
 
 function renderTransactionDetails(t, splitStatus) {
+    console.log('renderTransactionDetails - transaction:', t);
+    console.log('renderTransactionDetails - split:', t.split);
+    console.log('renderTransactionDetails - totalAmount:', t.totalAmount);
+    console.log('renderTransactionDetails - payer:', t.payer);
     return `
         <div class="split-details">
             <div class="split-details-header">
@@ -1440,6 +1548,105 @@ function closeAlertModal() {
     document.getElementById('alertModal').classList.remove('show');
 }
 
+// ============================================================================
+// IMPORT CONFIRMATION MODAL
+// ============================================================================
+
+let selectedImportMode = 'merge'; // default to merge
+let pendingImportFile = null; // Store selected file
+
+function selectFileForImport() {
+    // Close export menu first
+    const exportMenu = document.getElementById('exportMenu');
+    if (exportMenu) exportMenu.style.display = 'none';
+
+    // Remove existing input if any
+    const existingInput = document.getElementById('importFileInput');
+    if (existingInput) {
+        existingInput.remove();
+    }
+
+    // Create fresh input element
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.id = 'importFileInput';
+    input.accept = '.json,.csv,.xlsx,.xls';
+    input.style.display = 'none';
+
+    // Set onchange handler before adding to DOM
+    input.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            pendingImportFile = file;
+            showImportConfirmModal();
+        }
+    });
+
+    document.body.appendChild(input);
+    input.click();
+}
+
+function showImportConfirmModal() {
+    // Reset to default (merge)
+    selectedImportMode = 'merge';
+    selectImportMode('merge');
+    document.getElementById('importConfirmModal').classList.add('show');
+}
+
+function closeImportConfirmModal() {
+    document.getElementById('importConfirmModal').classList.remove('show');
+    pendingImportFile = null; // Clear pending file
+}
+
+function selectImportMode(mode) {
+    selectedImportMode = mode;
+
+    // Update UI styling
+    const replaceOption = document.getElementById('importReplaceOption');
+    const mergeOption = document.getElementById('importMergeOption');
+    const replaceRadio = document.getElementById('importModeReplace');
+    const mergeRadio = document.getElementById('importModeMerge');
+
+    if (mode === 'replace') {
+        replaceOption.style.borderColor = '#4f46e5';
+        replaceOption.style.background = '#eef2ff';
+        mergeOption.style.borderColor = '#e5e7eb';
+        mergeOption.style.background = 'transparent';
+        replaceRadio.checked = true;
+        mergeRadio.checked = false;
+    } else {
+        mergeOption.style.borderColor = '#4f46e5';
+        mergeOption.style.background = '#eef2ff';
+        replaceOption.style.borderColor = '#e5e7eb';
+        replaceOption.style.background = 'transparent';
+        mergeRadio.checked = true;
+        replaceRadio.checked = false;
+    }
+}
+
+function confirmImport() {
+    console.log('confirmImport called');
+    if (!pendingImportFile) {
+        showToast('Tidak ada file yang dipilih');
+        return;
+    }
+
+    // Store file reference before closing modal (which clears it)
+    const fileToImport = pendingImportFile;
+    console.log('File to import:', fileToImport ? fileToImport.name : 'null');
+
+    closeImportConfirmModal();
+
+    // Process the file with selected mode
+    window.pendingImportMode = selectedImportMode;
+    console.log('Import mode:', selectedImportMode);
+
+    // Process import
+    console.log('Calling Storage.processImportFile');
+    Storage.processImportFile(fileToImport);
+    console.log('Storage.processImportFile returned');
+}
+
 function showToast(message) {
     const toast = document.getElementById('toast');
     if (toast) {
@@ -1696,19 +1903,86 @@ function downloadImage(transactionId) {
 }
 
 function downloadSettlementImage() {
-    const settlements = calculateSettlements();
-    if (settlements.length === 0) {
-        showAlert('Semua sudah settle!');
+    const padding = 25;
+    const headerHeight = 50;
+
+    // Ensure people array is valid
+    if (!people || people.length === 0) {
+        showAlert('Tambahkan orang terlebih dahulu di Kelola Orang!');
         return;
     }
 
-    const padding = 25;
-    const width = 480;
-    const headerHeight = 70;
-    const itemHeight = 70;
-    const footerHeight = 50;
-    const height = headerHeight + (settlements.length * itemHeight) + footerHeight + padding * 2;
+    // Check if there are any pending settlements
+    const hasPending = transactions.some(t => {
+        const splitStatus = t.splitStatus || {};
+        return Object.entries(t.split || {}).some(([person, data]) => {
+            return person !== t.payer && splitStatus[person] !== 'paid';
+        });
+    });
 
+    if (!hasPending) {
+        showAlert('Tidak ada yang perlu disettle!');
+        return;
+    }
+
+    // Get person keys and names
+    const personKeys = people.map(p => p.key);
+    const personNamesMap = {};
+    people.forEach(p => personNamesMap[p.key] = p.name);
+
+    // Calculate total pending (gross amount)
+    let totalPending = 0;
+    transactions.forEach(t => {
+        const splitStatus = t.splitStatus || {};
+        Object.entries(t.split || {}).forEach(([person, data]) => {
+            if (person === t.payer) return;
+            if (splitStatus[person] === 'paid') return;
+            const amount = typeof data === 'number' ? data : data.amount;
+            totalPending += amount;
+        });
+    });
+
+    // Get latest transaction date
+    const latestDate = transactions.length > 0 ? transactions[0].date : new Date().toISOString().split('T')[0];
+    const dateFormatted = new Date(latestDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    // Dynamic width based on number of people
+    // Recap matrix: name column (80) + (num people * 80) + padding
+    const minWidth = 400;
+    const maxWidth = 800;
+    const personColWidth = 85;
+    const nameColWidth = 90;
+    const recapWidth = nameColWidth + (personKeys.length * personColWidth) + padding * 2;
+
+    // Detail table: description (120) + date (100) + (num people * colWidth) + padding
+    const descColWidth = 120;
+    const dateColWidth = 100;
+    const detailColWidth = 80;
+    const detailWidth = descColWidth + dateColWidth + (personKeys.length * detailColWidth) + padding * 2;
+
+    // Use the wider of the two
+    const width = Math.min(maxWidth, Math.max(minWidth, Math.max(recapWidth, detailWidth)));
+
+    // Calculate content height dynamically
+    let contentHeight = 0;
+
+    // Section 1: Recap matrix
+    contentHeight += 30; // header
+    contentHeight += personKeys.length * 30 + 15; // matrix rows
+
+    // Section 2: Detail transactions
+    contentHeight += 35; // section header
+
+    // Calculate height based on actual transactions
+    const numTransactions = transactions.length;
+    contentHeight += numTransactions * 25; // rows
+
+    // Footer
+    contentHeight += 50;
+
+    const height = headerHeight + contentHeight + padding * 2;
+
+    // Create canvas with dynamic dimensions
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     canvas.width = width;
@@ -1727,72 +2001,264 @@ function downloadSettlementImage() {
 
     // Header text
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 18px sans-serif';
+    ctx.font = 'bold 14px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Penyelesaian Hutang', width / 2, 32);
-    ctx.font = '11px sans-serif';
+    ctx.fillText('Recap', width / 2, 22);
+    ctx.font = '9px sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.fillText('Harta Gono-Gini', width / 2, 50);
+    ctx.fillText('Harta Gono-Gini', width / 2, 38);
 
-    // Content
-    let y = headerHeight + padding + 10;
+    ctx.textAlign = 'left';
+    let y = headerHeight + padding + 5;
+    const cardWidth = width - padding * 2;
 
-    settlements.forEach((s, index) => {
-        // Card background
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(padding, y, width - padding * 2, itemHeight - 10);
+    // ===== SECTION 1: RECAP MATRIX =====
+    // Build payment matrix
+    console.log('Debug: Processing', transactions.length, 'transactions with', personKeys.length, 'people');
+    console.log('Debug: personKeys:', personKeys);
+
+    const paymentMatrix = {};
+    personKeys.forEach(from => {
+        paymentMatrix[from] = {};
+        personKeys.forEach(to => {
+            paymentMatrix[from][to] = 0;
+        });
+    });
+
+    // Calculate net payments
+    transactions.forEach((t, idx) => {
+        console.log('Debug Tx' + idx + ':', t.payer, 'paid, split:', JSON.stringify(t.split));
+        const splitStatus = t.splitStatus || {};
+        Object.entries(t.split || {}).forEach(([person, data]) => {
+            if (person === t.payer) return;
+            if (splitStatus[person] === 'paid') return;
+
+            // Case-insensitive match
+            const matchedFrom = personKeys.find(k => k.toLowerCase() === person.toLowerCase());
+            const matchedTo = personKeys.find(k => k.toLowerCase() === t.payer.toLowerCase());
+            if (!matchedFrom || !matchedTo) {
+                console.log('Debug: No match for', person, '->', t.payer, '| personKeys:', personKeys);
+                return;
+            }
+
+            const amount = typeof data === 'number' ? data : data.amount;
+            if (amount > 0) {
+                // person pays t.payer
+                if (!paymentMatrix[matchedFrom]) paymentMatrix[matchedFrom] = {};
+                paymentMatrix[matchedFrom][matchedTo] = (paymentMatrix[matchedFrom][matchedTo] || 0) + amount;
+                console.log('Debug: paymentMatrix[' + matchedFrom + '][' + matchedTo + '] += ' + amount);
+            }
+        });
+    });
+
+    console.log('Debug: Final paymentMatrix:', JSON.stringify(paymentMatrix, null, 2));
+
+    // Calculate net payments (A pays B = A_to_B - B_to_A, only if positive)
+    const netMatrix = {};
+    personKeys.forEach(from => {
+        netMatrix[from] = {};
+        personKeys.forEach(to => {
+            if (from === to) {
+                netMatrix[from][to] = '-';
+            } else {
+                const aToB = paymentMatrix[from]?.[to] || 0;
+                const bToA = paymentMatrix[to]?.[from] || 0;
+                const net = aToB - bToA;
+                netMatrix[from][to] = net > 0 ? net : '-';
+            }
+        });
+    });
+
+    console.log('Debug: netMatrix:', JSON.stringify(netMatrix, null, 2));
+
+    // Calculate dynamic column widths for recap matrix
+    const recapNameColWidth = 90;
+    const recapPersonColWidth = 85;
+    const matrixNameColWidth = width - (personKeys.length * recapPersonColWidth) - padding * 2;
+
+    // Table header row
+    ctx.fillStyle = '#4f46e5';
+    ctx.fillRect(padding, y, width - padding * 2, 28);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 9px sans-serif';
+    ctx.fillText('', padding + 2, y + 18);
+
+    personKeys.forEach((key, i) => {
+        const name = personNamesMap[key] || key;
+        const displayName = name.length > 8 ? name.substring(0, 7) + '..' : name;
+        ctx.textAlign = 'center';
+        ctx.fillText('Ke ' + displayName, padding + matrixNameColWidth + (i * recapPersonColWidth) + recapPersonColWidth / 2, y + 18);
+    });
+    ctx.textAlign = 'left';
+    y += 28;
+
+    // Table rows
+    personKeys.forEach((fromKey, rowIdx) => {
+        const rowHeight = 28;
+        const bgColor = rowIdx % 2 === 0 ? '#ffffff' : '#f3f4f6';
+
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(padding, y, width - padding * 2, rowHeight);
         ctx.strokeStyle = '#e5e7eb';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(padding, y, width - padding * 2, itemHeight - 10);
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(padding, y, width - padding * 2, rowHeight);
 
-        // Left accent
-        ctx.fillStyle = index % 2 === 0 ? '#4f46e5' : '#7c3aed';
-        ctx.fillRect(padding, y, 4, itemHeight - 10);
+        // Row header (person name)
+        const fromName = personNamesMap[fromKey] || fromKey;
+        const displayFromName = fromName.length > 8 ? fromName.substring(0, 7) + '..' : fromName;
+        ctx.fillStyle = '#374151';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.fillText(displayFromName, padding + 3, y + 18);
 
-        // Person names and arrow
-        ctx.fillStyle = '#1f2937';
-        ctx.font = 'bold 14px sans-serif';
+        // Payment cells
+        personKeys.forEach((toKey, colIdx) => {
+            const cellX = padding + matrixNameColWidth + (colIdx * recapPersonColWidth);
+            const value = netMatrix[fromKey][toKey];
+
+            if (value === '-') {
+                ctx.fillStyle = '#9ca3af';
+                ctx.font = '9px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('-', cellX + recapPersonColWidth / 2, y + 18);
+            } else {
+                ctx.fillStyle = '#dc2626';
+                ctx.font = 'bold 9px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(formatCurrency(value), cellX + recapPersonColWidth / 2, y + 18);
+            }
+        });
         ctx.textAlign = 'left';
-        ctx.fillText(getPersonName(s.from), padding + 15, y + 25);
 
-        ctx.fillStyle = '#6b7280';
-        ctx.font = '12px sans-serif';
-        ctx.fillText('bayar ke', padding + 15 + ctx.measureText(getPersonName(s.from)).width + 10, y + 25);
+        y += rowHeight;
+    });
 
-        const toNameX = padding + 15 + ctx.measureText(getPersonName(s.from)).width + 10 + ctx.measureText('bayar ke ').width + 5;
-        ctx.fillStyle = '#4f46e5';
-        ctx.font = 'bold 14px sans-serif';
-        ctx.fillText(getPersonName(s.to), toNameX, y + 25);
+    y += 20;
 
-        // Amount
-        ctx.fillStyle = '#dc2626';
-        ctx.font = 'bold 16px sans-serif';
-        ctx.textAlign = 'right';
-        ctx.fillText(formatCurrency(s.amount), width - padding - 15, y + 30);
+    // ===== SECTION 3: DETAIL TRANSAKSI TABLE =====
+    ctx.fillStyle = '#1f2937';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText('Detail Transaksi:', padding, y);
+    y += 25;
 
-        // Items breakdown (if any)
-        if (s.items && s.items.length > 0) {
-            ctx.fillStyle = '#6b7280';
-            ctx.font = '10px sans-serif';
-            ctx.textAlign = 'left';
-            const itemsText = s.items.slice(0, 3).map(item => '• ' + item.name).join(', ');
-            const truncatedText = itemsText.length > 50 ? itemsText.substring(0, 47) + '...' : itemsText;
-            ctx.fillText(truncatedText, padding + 15, y + 50);
+    // Get all person names for table headers
+    const personNames = people.map(p => p.name || p.key || 'Unknown');
+    const numPersons = personNames.length || 1;
+
+    // Dynamic column widths for detail table
+    const detailDescColWidth = 90;
+    const detailDateColWidth = 85;
+    const detailPersonColWidth = Math.max(60, (cardWidth - detailDescColWidth - detailDateColWidth) / numPersons);
+    const rowHeight = 25;
+
+    // Table header
+    ctx.fillStyle = '#7c3aed';
+    ctx.fillRect(padding, y, cardWidth, 28);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 9px sans-serif';
+    ctx.fillText('Description', padding + 5, y + 18);
+    ctx.fillText('Date', padding + detailDescColWidth + 5, y + 18);
+
+    personNames.forEach((name, i) => {
+        const colX = padding + detailDescColWidth + detailDateColWidth + (i * detailPersonColWidth);
+        // Truncate name if too long
+        const displayName = (name || '?').length > 8 ? name.substring(0, 7) + '..' : name;
+        ctx.textAlign = 'center';
+        ctx.fillText(displayName, colX + detailPersonColWidth / 2, y + 18);
+    });
+    ctx.textAlign = 'left';
+    y += 28;
+
+    // Sort transactions by date descending
+    const sortedTransactions = [...transactions].sort((a, b) => {
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        return b.date.localeCompare(a.date);
+    });
+
+    // Table rows
+    sortedTransactions.forEach((t, index) => {
+        const bgColor = index % 2 === 0 ? '#ffffff' : '#f3f4f6';
+
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(padding, y, cardWidth, rowHeight);
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(padding, y, cardWidth, rowHeight);
+
+        // Description (truncate if too long)
+        const desc = t.description ? (t.description.length > 12 ? t.description.substring(0, 11) + '..' : t.description) : '-';
+        ctx.fillStyle = '#374151';
+        ctx.font = '9px sans-serif';
+        ctx.fillText(desc, padding + 5, y + 16);
+
+        // Date (with year)
+        const dateObj = t.date ? new Date(t.date) : null;
+        let dateStr = '-';
+        if (dateObj && !isNaN(dateObj.getTime())) {
+            const day = dateObj.getDate().toString().padStart(2, '0');
+            const month = dateObj.toLocaleDateString('id-ID', { month: 'short' });
+            const year = dateObj.getFullYear();
+            dateStr = `${day} ${month} ${year}`;
         }
+        ctx.fillStyle = '#6b7280';
+        ctx.font = '8px sans-serif';
+        ctx.fillText(dateStr, padding + detailDescColWidth + 5, y + 16);
 
-        y += itemHeight;
+        // Person amounts - check if payer
+        personNames.forEach((name, i) => {
+            const personKey = people[i]?.key || people[i]?.name?.toLowerCase().replace(/\s+/g, '');
+            const colX = padding + detailDescColWidth + detailDateColWidth + (i * detailPersonColWidth);
+
+            // Check if this person is the payer
+            const isPayer = t.payerKey && personKey && personKey.toLowerCase() === t.payerKey.toLowerCase();
+
+            // Try multiple key formats
+            let amountValue = 0;
+            if (t.split) {
+                // Direct key match
+                amountValue = t.split[personKey];
+                if (amountValue === undefined) {
+                    // Try case-insensitive match
+                    const keys = Object.keys(t.split);
+                    const foundKey = keys.find(k => k.toLowerCase() === personKey.toLowerCase());
+                    if (foundKey) amountValue = t.split[foundKey];
+                }
+            }
+            amountValue = typeof amountValue === 'number' ? amountValue : (amountValue?.amount || 0);
+
+            if (isPayer) {
+                // Show Paymaster for payer
+                ctx.fillStyle = '#10b981';
+                ctx.font = 'bold italic 8px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('Paymaster', colX + detailPersonColWidth / 2, y + 16);
+            } else if (amountValue > 0) {
+                ctx.fillStyle = '#dc2626';
+                ctx.font = 'bold 9px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(formatCurrency(amountValue), colX + detailPersonColWidth / 2, y + 16);
+            } else {
+                ctx.fillStyle = '#9ca3af';
+                ctx.font = '9px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('-', colX + detailPersonColWidth / 2, y + 16);
+            }
+        });
+        ctx.textAlign = 'left';
+
+        y += rowHeight;
     });
 
     // Footer
-    const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
     ctx.fillStyle = '#9ca3af';
     ctx.font = '9px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Generated: ' + dateStr, width / 2, height - 15);
+    ctx.fillText('Copyright © by KMB - Konferensi Meja Bundar', width / 2, height - 15);
 
     // Download
     const link = document.createElement('a');
-    link.download = `penyelesaian-hutang-${new Date().toISOString().split('T')[0]}.png`;
+    link.download = `recap-penyelesaian-${new Date().toISOString().split('T')[0]}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
 
@@ -1853,8 +2319,13 @@ window.debugData = debugData;
 window.toggleDarkMode = toggleDarkMode;
 window.toggleExportMenu = toggleExportMenu;
 window.toggleDashboard = toggleDashboard;
+window.toggleSettlements = toggleSettlements;
 window.showPersonHistory = showPersonHistory;
 window.closePersonHistoryModal = closePersonHistoryModal;
+window.closeImportConfirmModal = closeImportConfirmModal;
+window.confirmImport = confirmImport;
+window.showImportConfirmModal = showImportConfirmModal;
+window.selectFileForImport = selectFileForImport;
 
 // Load data and initialize
 loadFromStorage();
@@ -1868,3 +2339,6 @@ updateCheckboxState();
 const today = new Date().toISOString().split('T')[0];
 const dateInput = document.getElementById('transactionDate');
 if (dateInput) dateInput.value = today;
+
+console.log('app.js fully loaded');
+console.log('toggleExportMenu:', typeof window.toggleExportMenu);

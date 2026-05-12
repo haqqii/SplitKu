@@ -67,10 +67,16 @@ const Storage = {
 
     // Import from JSON, CSV, or XLSX file
     importJSON: function(file) {
+        console.log('importJSON called with file:', file ? file.name : 'null');
+        if (!file || !file.name) {
+            return Promise.reject(new Error('File tidak valid'));
+        }
         const fileName = file.name.toLowerCase();
         const isXLSX = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+        const importMode = window.pendingImportMode || 'merge';
 
         return new Promise((resolve, reject) => {
+            console.log('Promise created, isXLSX:', isXLSX);
             if (isXLSX) {
                 // XLSX: read as binary
                 const reader = new FileReader();
@@ -90,12 +96,54 @@ const Storage = {
                         const currentPeople = this.get(this.KEYS.PEOPLE) || [];
                         const importData = this.parseXLSX(jsonData, currentPeople);
 
-                        if (confirm('Import akan mengganti semua data yang ada. Lanjutkan?')) {
-                            this.set(this.KEYS.TRANSACTIONS, importData.transactions || []);
-                            this.set(this.KEYS.NEXT_ID, importData.nextId || 1);
-                            resolve({ transactions: importData.transactions?.length || 0, people: 0 });
+                        const newTransactions = JSON.parse(JSON.stringify(importData.transactions || []));
+                        const newNextId = importData.nextId || 1;
+
+                        // Extract and save people from imported transactions
+                        const extractedPeople = this.extractPeopleFromTransactions(newTransactions);
+
+                        if (importMode === 'replace') {
+                            // Replace all data
+                            this.set(this.KEYS.TRANSACTIONS, newTransactions);
+                            this.set(this.KEYS.NEXT_ID, newNextId);
+                            if (extractedPeople.length > 0) {
+                                this.set(this.KEYS.PEOPLE, extractedPeople);
+                            }
+                            console.log('About to resolve XLSX replace');
+                            resolve({ transactions: newTransactions.length, people: extractedPeople.length, mode: 'replace' });
                         } else {
-                            reject(new Error('Import dibatalkan'));
+                            // Merge: combine with existing data
+                            const existingTransactions = this.get(this.KEYS.TRANSACTIONS) || [];
+                            const existingPeople = this.get(this.KEYS.PEOPLE) || [];
+                            const existingNextId = this.get(this.KEYS.NEXT_ID) || 1;
+
+                            // Merge transactions (create new objects with new IDs to avoid modifying original)
+                            let nextId = existingNextId;
+                            const mergedTransactions = [
+                                ...existingTransactions,
+                                ...newTransactions.map(t => ({...t, id: nextId++}))
+                            ];
+
+                            // Merge people (avoid duplicates)
+                            const peopleMap = {};
+                            existingPeople.forEach(p => peopleMap[p.key] = p);
+                            extractedPeople.forEach(p => {
+                                if (!peopleMap[p.key]) {
+                                    peopleMap[p.key] = p;
+                                }
+                            });
+                            const mergedPeople = Object.values(peopleMap);
+
+                            this.set(this.KEYS.TRANSACTIONS, mergedTransactions);
+                            this.set(this.KEYS.NEXT_ID, existingNextId);
+                            this.set(this.KEYS.PEOPLE, mergedPeople);
+
+                            resolve({
+                                transactions: newTransactions.length,
+                                merged: mergedTransactions.length,
+                                people: mergedPeople.length,
+                                mode: 'merge'
+                            });
                         }
                     } catch (err) {
                         reject(new Error('File tidak valid: ' + err.message));
@@ -130,30 +178,52 @@ const Storage = {
                             return;
                         }
 
-                        // Confirm replace
-                        if (!confirm('Import akan mengganti semua data yang ada. Lanjutkan?')) {
-                            reject(new Error('Import dibatalkan'));
-                            return;
-                        }
+                        const newTransactions = JSON.parse(JSON.stringify(data.transactions || []));
+                        const newPeople = JSON.parse(JSON.stringify(data.people || []));
+                        const existingTransactions = this.get(this.KEYS.TRANSACTIONS) || [];
+                        const existingPeople = this.get(this.KEYS.PEOPLE) || [];
+                        const existingNextId = this.get(this.KEYS.NEXT_ID) || 1;
 
-                        // Import data
-                        if (data.transactions) {
-                            this.set(this.KEYS.TRANSACTIONS, data.transactions);
-                        }
-                        if (data.people) {
-                            this.set(this.KEYS.PEOPLE, data.people);
-                        }
-                        if (data.budgets) {
-                            this.set(this.KEYS.BUDGETS, data.budgets);
-                        }
-                        if (data.settings) {
-                            this.set(this.KEYS.SETTINGS, data.settings);
-                        }
+                        if (importMode === 'replace') {
+                            // Replace all data
+                            if (data.transactions) this.set(this.KEYS.TRANSACTIONS, data.transactions);
+                            if (data.people) this.set(this.KEYS.PEOPLE, data.people);
+                            if (data.budgets) this.set(this.KEYS.BUDGETS, data.budgets);
+                            if (data.settings) this.set(this.KEYS.SETTINGS, data.settings);
+                            console.log('About to resolve JSON replace');
+                            resolve({ transactions: data.transactions?.length || 0, people: data.people?.length || 0, mode: 'replace' });
+                        } else {
+                            // Merge: combine with existing data
+                            // Create new objects with new IDs to avoid modifying original
+                            let nextId = existingNextId;
+                            const mergedTransactions = [
+                                ...existingTransactions,
+                                ...newTransactions.map(t => ({...t, id: nextId++}))
+                            ];
 
-                        resolve({
-                            transactions: data.transactions?.length || 0,
-                            people: data.people?.length || 0
-                        });
+                            // Merge people (avoid duplicates)
+                            const peopleMap = {};
+                            existingPeople.forEach(p => peopleMap[p.key] = p);
+                            newPeople.forEach(p => {
+                                if (!peopleMap[p.key]) {
+                                    peopleMap[p.key] = p;
+                                }
+                            });
+                            const mergedPeople = Object.values(peopleMap);
+
+                            this.set(this.KEYS.TRANSACTIONS, mergedTransactions);
+                            this.set(this.KEYS.PEOPLE, mergedPeople);
+                            this.set(this.KEYS.NEXT_ID, nextId);
+                            if (data.budgets) this.set(this.KEYS.BUDGETS, data.budgets);
+                            if (data.settings) this.set(this.KEYS.SETTINGS, data.settings);
+
+                            resolve({
+                                transactions: newTransactions.length,
+                                merged: mergedTransactions.length,
+                                people: mergedPeople.length,
+                                mode: 'merge'
+                            });
+                        }
                     } catch (err) {
                         reject(new Error('File tidak valid: ' + err.message));
                     }
@@ -581,6 +651,30 @@ const Storage = {
         return total;
     },
 
+    // Extract unique people from transactions
+    extractPeopleFromTransactions: function(transactions) {
+        const peopleMap = {};
+
+        transactions.forEach(t => {
+            // Add payer
+            if (t.payer && t.payerKey) {
+                peopleMap[t.payerKey] = { key: t.payerKey, name: t.payer };
+            }
+            // Add people from split
+            if (t.split) {
+                Object.keys(t.split).forEach(key => {
+                    if (key && !peopleMap[key]) {
+                        // Try to get name from payerKey if available
+                        const personName = t.payerKey === key ? t.payer : key;
+                        peopleMap[key] = { key: key, name: personName.charAt(0).toUpperCase() + personName.slice(1) };
+                    }
+                });
+            }
+        });
+
+        return Object.values(peopleMap);
+    },
+
     // Format date for filename
     formatDateForFilename: function(date) {
         return date.toISOString().split('T')[0].replace(/-/g, '');
@@ -595,25 +689,51 @@ const Storage = {
             input.id = 'importFileInput';
             input.accept = '.json,.csv,.xlsx,.xls';
             input.style.display = 'none';
-            input.addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    try {
-                        const result = await Storage.importJSON(file);
-                        // Reload data
-                        if (typeof loadFromStorage === 'function') loadFromStorage();
-                        if (typeof refreshAll === 'function') refreshAll();
-                        if (typeof renderPeopleManage === 'function') renderPeopleManage();
-                        if (typeof showToast === 'function') showToast(`Berhasil import ${result.transactions} transaksi`);
-                    } catch (err) {
-                        alert('Import gagal: ' + err.message);
-                    }
-                    input.value = ''; // Reset
-                }
-            });
             document.body.appendChild(input);
         }
         return input;
+    },
+
+    // Process import file (called after modal confirmation)
+    processImportFile: async function(file) {
+        console.log('processImportFile called with file:', file ? file.name : 'null');
+        if (!file) {
+            alert('Tidak ada file yang dipilih');
+            return;
+        }
+        try {
+            const result = await Storage.importJSON(file);
+            console.log('Import result:', result);
+
+            // Use setTimeout to ensure code runs after promise settles
+            setTimeout(() => {
+                console.log('setTimeout callback running');
+
+                if (typeof loadFromStorage === 'function') {
+                    loadFromStorage();
+                    console.log('After loadFromStorage, transactions:', transactions.length);
+                }
+                if (typeof refreshAll === 'function') {
+                    refreshAll();
+                    console.log('refreshAll called');
+                }
+                if (typeof renderPeopleManage === 'function') {
+                    renderPeopleManage();
+                    console.log('renderPeopleManage called');
+                }
+
+                if (typeof showToast === 'function') {
+                    showToast(`Berhasil import ${result.transactions} transaksi`);
+                    console.log('Toast shown');
+                }
+
+                window.pendingImportMode = null;
+                console.log('Import process complete');
+            }, 50);
+        } catch (err) {
+            console.error('Error in processImportFile:', err);
+            alert('Import gagal: ' + err.message);
+        }
     },
 
     // Trigger import dialog
@@ -624,9 +744,11 @@ const Storage = {
 };
 
 // Expose globally
+console.log('storage.js loaded');
 window.Storage = Storage;
 window.exportToJSON = Storage.exportJSON.bind(Storage);
 window.importFromJSON = Storage.importJSON.bind(Storage);
 window.exportToCSV = Storage.exportCSV.bind(Storage);
 window.backupData = Storage.backup.bind(Storage);
 window.triggerImport = Storage.triggerImport.bind(Storage);
+console.log('Export/Import functions exposed:', typeof window.exportToJSON, typeof window.exportToCSV, typeof window.triggerImport);

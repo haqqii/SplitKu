@@ -266,9 +266,12 @@ const Charts = {
         });
 
         transactions.forEach(t => {
-            // Add to payer's total (they paid this amount)
-            if (t.payer && spending.hasOwnProperty(t.payer)) {
-                spending[t.payer] += t.totalAmount || 0;
+            // Find matching person by payer name
+            if (t.payer) {
+                const payerKey = t.payer.toLowerCase().replace(/\s+/g, '');
+                if (spending.hasOwnProperty(payerKey)) {
+                    spending[payerKey] += t.totalAmount || 0;
+                }
             }
         });
 
