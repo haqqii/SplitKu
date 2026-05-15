@@ -1502,6 +1502,13 @@ function addExtraCostField() {
         <button type="button" onclick="removeExtraCostField(${extraCostCounter})" style="background: var(--danger); color: white; border: none; width: 36px; height: 36px; border-radius: 6px; cursor: pointer; margin-top: 20px;">×</button>
     `;
     container.appendChild(fieldDiv);
+
+    // Set initial state for the new field
+    const newSelect = fieldDiv.querySelector('.extra-cost-type');
+    if (newSelect) {
+        handleExtraCostTypeChange(newSelect);
+    }
+
     calculateAutoTotal();
 }
 
@@ -2013,6 +2020,11 @@ function downloadSettlementImage() {
     const cardWidth = width - padding * 2;
 
     // ===== SECTION 1: RECAP MATRIX =====
+    ctx.fillStyle = '#1f2937';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText('Summary:', padding, y);
+    y += 20;
+
     // Build payment matrix
     console.log('Debug: Processing', transactions.length, 'transactions with', personKeys.length, 'people');
     console.log('Debug: personKeys:', personKeys);
@@ -2132,7 +2144,7 @@ function downloadSettlementImage() {
         y += rowHeight;
     });
 
-    y += 20;
+    y += 35;
 
     // ===== SECTION 3: DETAIL TRANSAKSI TABLE =====
     ctx.fillStyle = '#1f2937';
@@ -2145,7 +2157,7 @@ function downloadSettlementImage() {
     const numPersons = personNames.length || 1;
 
     // Dynamic column widths for detail table
-    const detailDescColWidth = 90;
+    const detailDescColWidth = 110;
     const detailDateColWidth = 85;
     const detailPersonColWidth = Math.max(60, (cardWidth - detailDescColWidth - detailDateColWidth) / numPersons);
     const rowHeight = 25;
@@ -2186,8 +2198,8 @@ function downloadSettlementImage() {
         ctx.lineWidth = 0.5;
         ctx.strokeRect(padding, y, cardWidth, rowHeight);
 
-        // Description (truncate if too long)
-        const desc = t.description ? (t.description.length > 12 ? t.description.substring(0, 11) + '..' : t.description) : '-';
+        // Description (truncate if too long, max 33 chars)
+        const desc = t.description ? (t.description.length > 33 ? t.description.substring(0, 30) + '...' : t.description) : '-';
         ctx.fillStyle = '#374151';
         ctx.font = '9px sans-serif';
         ctx.fillText(desc, padding + 5, y + 16);
@@ -2211,7 +2223,7 @@ function downloadSettlementImage() {
             const colX = padding + detailDescColWidth + detailDateColWidth + (i * detailPersonColWidth);
 
             // Check if this person is the payer
-            const isPayer = t.payerKey && personKey && personKey.toLowerCase() === t.payerKey.toLowerCase();
+            const isPayer = t.payer && personKey && personKey.toLowerCase() === t.payer.toLowerCase();
 
             // Try multiple key formats
             let amountValue = 0;
