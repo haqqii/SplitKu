@@ -1120,7 +1120,28 @@ function settlePerson(transactionId, person) {
     }
 }
 
+let settleData = { from: '', to: '', amount: 0 };
+
 function settleBySettlement(from, to, amount) {
+    settleData = { from, to, amount };
+    const fromName = getPersonName(from);
+    const toName = getPersonName(to);
+
+    document.getElementById('confirmSettleMessage').innerHTML =
+        `<strong>${fromName}</strong> sudah bayar ke <strong>${toName}</strong><br><span style="font-size: 1.3rem; color: #10b981; font-weight: bold;">Rp ${formatCurrency(amount).replace('Rp ', '')}</span>`;
+
+    document.getElementById('confirmSettleModal').classList.add('show');
+}
+
+function closeConfirmSettleModal() {
+    document.getElementById('confirmSettleModal').classList.remove('show');
+    settleData = { from: '', to: '', amount: 0 };
+}
+
+function confirmSettle() {
+    const { from, to, amount } = settleData;
+    closeConfirmSettleModal();
+
     let remaining = amount;
 
     for (let t of transactions) {
@@ -2286,6 +2307,8 @@ window.closeDeletePersonModal = closeDeletePersonModal;
 window.confirmDeletePerson = confirmDeletePerson;
 window.deleteTransaction = deleteTransaction;
 window.closeConfirmDeleteModal = closeConfirmDeleteModal;
+window.closeConfirmSettleModal = closeConfirmSettleModal;
+window.confirmSettle = confirmSettle;
 window.confirmDeleteTransaction = confirmDeleteTransaction;
 window.debugData = debugData;
 window.toggleDarkMode = toggleDarkMode;

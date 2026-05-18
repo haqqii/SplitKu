@@ -369,6 +369,22 @@
         </div>
     </div>
 
+    <!-- Custom Confirm Settle Modal -->
+    <div id="confirmSettleModal" class="modal">
+        <div class="modal-backdrop" onclick="closeConfirmSettleModal()"></div>
+        <div class="modal-content" style="text-align: center;">
+            <div style="width: 70px; height: 70px; background: #d1fae5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;">
+                <span style="font-size: 32px;">💰</span>
+            </div>
+            <h3 style="margin-bottom: 8px; color: #1f2937;">Konfirmasi Pembayaran</h3>
+            <p id="confirmSettleMessage" style="color: #6b7280; margin-bottom: 24px; line-height: 1.5;"></p>
+            <div style="display: flex; gap: 12px;">
+                <button onclick="closeConfirmSettleModal()" style="flex: 1; background: #f3f4f6; color: #374151; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Batal</button>
+                <button onclick="confirmSettle()" style="flex: 1; background: #10b981; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Ya, Sudah Bayar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal: Tambah Orang -->
     <div id="addPersonModal" class="modal">
         <div class="modal-backdrop" onclick="closeAddPersonModal()"></div>
