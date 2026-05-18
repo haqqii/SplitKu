@@ -171,6 +171,8 @@
 
 [data-theme="dark"] .split-card .item-amount {
     color: var(--text-primary);
+    min-width: 80px;
+    text-align: right;
 }
 
 /* Dark mode total section */

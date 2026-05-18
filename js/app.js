@@ -1239,7 +1239,7 @@ function updateSplitAmountInputs() {
                     <div class="item-row">
                         <input type="text" placeholder="Nama item (opsional)" class="item-name" data-person="${person}">
                         <input type="number" placeholder="Rp 0" class="item-amount" data-person="${person}" min="0" oninput="calculatePersonTotal('${person}')">
-                        <button type="button" class="btn-remove-item" onclick="removeItem(this)" style="visibility: hidden;">×</button>
+                        <button type="button" class="btn-remove-item" onclick="removeItem(this)" style="display: none;">×</button>
                     </div>
                 </div>
                 <button type="button" class="btn-add-item" onclick="addItem('${person}')">+ Tambah Item</button>
@@ -1262,6 +1262,13 @@ function addItem(person, name = '', amount = '') {
         <button type="button" class="btn-remove-item" onclick="removeItem(this)">×</button>
     `;
     container.appendChild(row);
+
+    // Show delete button on first row when there are 2+ rows
+    const allRows = container.querySelectorAll('.item-row');
+    if (allRows.length >= 2) {
+        allRows[0].querySelector('.btn-remove-item').style.display = 'block';
+    }
+
     calculatePersonTotal(person);
 }
 
@@ -1271,6 +1278,13 @@ function removeItem(btn) {
     const person = container.id.replace('items-', '');
 
     row.remove();
+
+    // Hide delete button on first row when there's only 1 row left
+    const allRows = container.querySelectorAll('.item-row');
+    if (allRows.length === 1) {
+        allRows[0].querySelector('.btn-remove-item').style.display = 'none';
+    }
+
     calculatePersonTotal(person);
 }
 
