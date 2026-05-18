@@ -820,8 +820,6 @@ function renderTransactions() {
     const tbody = document.getElementById('transactionsBody');
     if (!tbody) return;
 
-    currentPage = 1;
-
     // Get filters
     const searchText = document.getElementById('searchText')?.value.toLowerCase() || '';
     const filterCategory = document.getElementById('filterCategory')?.value || '';
@@ -1013,20 +1011,20 @@ function renderPagination(containerId, totalPages, currentPage, onPageChange) {
     let html = '';
 
     if (currentPage > 1) {
-        html += `<button onclick="goToPage('${containerId}', ${currentPage - 1})" style="padding:4px 10px;border:1px solid #e5e7eb;background:white;border-radius:4px;cursor:pointer;">&#8249;</button>`;
+        html += `<button class="page-btn" data-page="${currentPage - 1}" data-container="${containerId}" style="padding:4px 10px;border:1px solid #e5e7eb;background:white;border-radius:4px;cursor:pointer;">&#8249;</button>`;
     }
 
     for (let i = 1; i <= totalPages; i++) {
         if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
             const active = i === currentPage ? 'background:#4f46e5;color:white;' : '';
-            html += `<button onclick="goToPage('${containerId}', ${i})" style="padding:4px 10px;border:1px solid #e5e7eb;background:white;border-radius:4px;cursor:pointer;${active}">${i}</button>`;
+            html += `<button class="page-btn" data-page="${i}" data-container="${containerId}" style="padding:4px 10px;border:1px solid #e5e7eb;background:white;border-radius:4px;cursor:pointer;${active}">${i}</button>`;
         } else if (i === currentPage - 2 || i === currentPage + 2) {
             html += `<span style="padding:4px;">...</span>`;
         }
     }
 
     if (currentPage < totalPages) {
-        html += `<button onclick="goToPage('${containerId}', ${currentPage + 1})" style="padding:4px 10px;border:1px solid #e5e7eb;background:white;border-radius:4px;cursor:pointer;">&#8250;</button>`;
+        html += `<button class="page-btn" data-page="${currentPage + 1}" data-container="${containerId}" style="padding:4px 10px;border:1px solid #e5e7eb;background:white;border-radius:4px;cursor:pointer;">&#8250;</button>`;
     }
 
     container.innerHTML = html;
@@ -1129,10 +1127,20 @@ function settleBySettlement(from, to, amount) {
         if (remaining <= 0) break;
         const splitStatus = t.splitStatus || {};
 
-        if (t.payer === to && t.split && t.split[from] && splitStatus[from] !== 'paid') {
-            if (!t.splitStatus) t.splitStatus = {};
-            t.splitStatus[from] = 'paid';
-            remaining -= (typeof t.split[from] === 'number' ? t.split[from] : t.split[from].amount);
+        // Normalize keys to lowercase for consistent matching
+        const payerLower = t.payer ? t.payer.toLowerCase() : '';
+        const fromLower = from ? from.toLowerCase() : '';
+        const toLower = to ? to.toLowerCase() : '';
+
+        // Check if this transaction matches the settlement direction
+        if (payerLower === toLower && t.split) {
+            // Find the person in split with case-insensitive match
+            const splitPersonKey = Object.keys(t.split).find(key => key.toLowerCase() === fromLower);
+            if (splitPersonKey && splitStatus[splitPersonKey] !== 'paid') {
+                if (!t.splitStatus) t.splitStatus = {};
+                t.splitStatus[splitPersonKey] = 'paid';
+                remaining -= (typeof t.split[splitPersonKey] === 'number' ? t.split[splitPersonKey] : t.split[splitPersonKey].amount);
+            }
         }
     }
 
@@ -2338,6 +2346,18 @@ window.closeImportConfirmModal = closeImportConfirmModal;
 window.confirmImport = confirmImport;
 window.showImportConfirmModal = showImportConfirmModal;
 window.selectFileForImport = selectFileForImport;
+
+// Pagination event delegation
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.page-btn');
+    if (btn) {
+        const page = parseInt(btn.dataset.page);
+        const containerId = btn.dataset.container;
+        if (!isNaN(page) && containerId) {
+            goToPage(containerId, page);
+        }
+    }
+});
 
 // Load data and initialize
 loadFromStorage();
