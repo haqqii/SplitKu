@@ -1927,15 +1927,10 @@ function downloadSettlementImage() {
         return;
     }
 
-    // Check if there are any pending settlements
-    const hasPending = transactions.some(t => {
-        const splitStatus = t.splitStatus || {};
-        return Object.entries(t.split || {}).some(([person, data]) => {
-            return person !== t.payer && splitStatus[person] !== 'paid';
-        });
-    });
+    // Use calculateSettlements() for consistency with Section "Penyelesaian"
+    const settlements = calculateSettlements();
 
-    if (!hasPending) {
+    if (settlements.length === 0) {
         showAlert('Tidak ada yang perlu disettle!');
         return;
     }
@@ -1945,17 +1940,8 @@ function downloadSettlementImage() {
     const personNamesMap = {};
     people.forEach(p => personNamesMap[p.key] = p.name);
 
-    // Calculate total pending (gross amount)
-    let totalPending = 0;
-    transactions.forEach(t => {
-        const splitStatus = t.splitStatus || {};
-        Object.entries(t.split || {}).forEach(([person, data]) => {
-            if (person === t.payer) return;
-            if (splitStatus[person] === 'paid') return;
-            const amount = typeof data === 'number' ? data : data.amount;
-            totalPending += amount;
-        });
-    });
+    // Calculate total pending (from settlements)
+    let totalPending = settlements.reduce((sum, s) => sum + s.amount, 0);
 
     // Get latest transaction date
     const latestDate = transactions.length > 0 ? transactions[0].date : new Date().toISOString().split('T')[0];
@@ -1997,11 +1983,13 @@ function downloadSettlementImage() {
 
     const height = headerHeight + contentHeight + padding * 2;
 
-    // Create canvas with dynamic dimensions
+    // Create canvas with dynamic dimensions (2x scale for HD)
+    const scale = 2;
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+    ctx.scale(scale, scale);
 
     // Background
     ctx.fillStyle = '#f9fafb';
@@ -2033,60 +2021,24 @@ function downloadSettlementImage() {
     ctx.fillText('Summary:', padding, y);
     y += 20;
 
-    // Build payment matrix
-    console.log('Debug: Processing', transactions.length, 'transactions with', personKeys.length, 'people');
-    console.log('Debug: personKeys:', personKeys);
+    // Build netMatrix from settlements (using same calculation as Section "Penyelesaian")
+    console.log('Debug: Building netMatrix from settlements:', JSON.stringify(settlements, null, 2));
 
-    const paymentMatrix = {};
-    personKeys.forEach(from => {
-        paymentMatrix[from] = {};
-        personKeys.forEach(to => {
-            paymentMatrix[from][to] = 0;
-        });
-    });
-
-    // Calculate net payments
-    transactions.forEach((t, idx) => {
-        console.log('Debug Tx' + idx + ':', t.payer, 'paid, split:', JSON.stringify(t.split));
-        const splitStatus = t.splitStatus || {};
-        Object.entries(t.split || {}).forEach(([person, data]) => {
-            if (person === t.payer) return;
-            if (splitStatus[person] === 'paid') return;
-
-            // Case-insensitive match
-            const matchedFrom = personKeys.find(k => k.toLowerCase() === person.toLowerCase());
-            const matchedTo = personKeys.find(k => k.toLowerCase() === t.payer.toLowerCase());
-            if (!matchedFrom || !matchedTo) {
-                console.log('Debug: No match for', person, '->', t.payer, '| personKeys:', personKeys);
-                return;
-            }
-
-            const amount = typeof data === 'number' ? data : data.amount;
-            if (amount > 0) {
-                // person pays t.payer
-                if (!paymentMatrix[matchedFrom]) paymentMatrix[matchedFrom] = {};
-                paymentMatrix[matchedFrom][matchedTo] = (paymentMatrix[matchedFrom][matchedTo] || 0) + amount;
-                console.log('Debug: paymentMatrix[' + matchedFrom + '][' + matchedTo + '] += ' + amount);
-            }
-        });
-    });
-
-    console.log('Debug: Final paymentMatrix:', JSON.stringify(paymentMatrix, null, 2));
-
-    // Calculate net payments (A pays B = A_to_B - B_to_A, only if positive)
     const netMatrix = {};
     personKeys.forEach(from => {
         netMatrix[from] = {};
         personKeys.forEach(to => {
-            if (from === to) {
-                netMatrix[from][to] = '-';
-            } else {
-                const aToB = paymentMatrix[from]?.[to] || 0;
-                const bToA = paymentMatrix[to]?.[from] || 0;
-                const net = aToB - bToA;
-                netMatrix[from][to] = net > 0 ? net : '-';
-            }
+            netMatrix[from][to] = '-';
         });
+    });
+
+    // Fill in settlements into the matrix
+    settlements.forEach(s => {
+        if (netMatrix[s.from] && netMatrix[s.from].hasOwnProperty(s.to)) {
+            netMatrix[s.from][s.to] = s.amount;
+        } else {
+            console.log('Debug: Skipping settlement - from/to not in personKeys:', s.from, '->', s.to, '| personKeys:', personKeys);
+        }
     });
 
     console.log('Debug: netMatrix:', JSON.stringify(netMatrix, null, 2));

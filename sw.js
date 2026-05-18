@@ -21,10 +21,28 @@ self.addEventListener('install', (event) => {
         caches.open(CACHE_NAME)
             .then((cache) => {
                 console.log('Caching app assets');
-                return cache.addAll(ASSETS_TO_CACHE);
+                // Use Promise.allSettled to handle individual failures gracefully
+                return Promise.all(
+                    ASSETS_TO_CACHE.map(url =>
+                        fetch(url)
+                            .then(response => {
+                                if (response.ok) {
+                                    return cache.put(url, response);
+                                }
+                            })
+                            .catch(err => {
+                                console.warn('Failed to cache:', url, err);
+                            })
+                    )
+                );
             })
             .then(() => {
                 // Activate immediately
+                return self.skipWaiting();
+            })
+            .catch((err) => {
+                console.error('Cache installation failed:', err);
+                // Don't fail the service worker installation
                 return self.skipWaiting();
             })
     );
