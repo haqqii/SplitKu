@@ -121,6 +121,7 @@ const itemsPerPage = 10;
 let currentPage = 1;
 let historyPage = 1;
 let extraCostCounter = 0;
+let discountCounter = 0;
 
 let people = [];
 
@@ -982,6 +983,22 @@ function renderTransactionDetails(t, splitStatus) {
                     </div>
                 </div>
             ` : ''}
+            ${t.discounts && t.discounts.length > 0 ? `
+                <div class="extra-costs-section" style="background: #ecfdf5;">
+                    <div class="extra-costs-header">
+                        <span>🏷️</span>
+                        <span>Diskon</span>
+                    </div>
+                    <div class="extra-costs-list">
+                        ${t.discounts.map(disc => `
+                            <div class="extra-cost-item">
+                                <span class="extra-cost-name">${escapeHtml(disc.name || 'Diskon')} (${disc.type === 'percent' ? disc.value + '%' : formatCurrency(disc.value)})</span>
+                                <span class="extra-cost-calc" style="color: #10b981;">-${formatCurrency(disc.calculated)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
             <div class="total-section">
                 <span class="total-label">Total Bill</span>
                 <div class="total-value">
@@ -1333,7 +1350,25 @@ function calculateAutoTotal() {
         }
     });
 
-    const grandTotal = total + totalExtraCost;
+    const discountRows = document.querySelectorAll('.discount-row');
+    let totalDiscount = 0;
+
+    discountRows.forEach(row => {
+        const type = row.querySelector('.discount-type').value;
+        const value = parseInt(row.querySelector('.discount-value').value) || 0;
+
+        if (value > 0) {
+            let calculated = 0;
+            if (type === 'percent') {
+                calculated = Math.round(total * value / 100);
+            } else {
+                calculated = value;
+            }
+            totalDiscount += calculated;
+        }
+    });
+
+    const grandTotal = total + totalExtraCost - totalDiscount;
     const totalAmountInput = document.getElementById('totalAmount');
     const autoTotalSpan = document.getElementById('autoTotal');
     if (totalAmountInput) totalAmountInput.value = grandTotal;
@@ -1464,6 +1499,45 @@ document.getElementById('addTransactionForm').addEventListener('submit', functio
         }
     });
 
+    const discountRows = document.querySelectorAll('.discount-row');
+    const discounts = [];
+
+    discountRows.forEach(row => {
+        const type = row.querySelector('.discount-type').value;
+        const name = row.querySelector('.discount-name').value;
+        const value = parseInt(row.querySelector('.discount-value').value) || 0;
+
+        if (value > 0) {
+            let calculated = 0;
+            if (type === 'percent') {
+                calculated = Math.round(totalAmount * value / 100);
+            } else {
+                calculated = value;
+            }
+
+            discounts.push({
+                type: type,
+                name: name || 'Diskon',
+                value: value,
+                calculated: calculated
+            });
+
+            Object.keys(split).forEach(person => {
+                const personSubtotal = split[person].amount;
+                const ratio = totalAmount > 0 ? personSubtotal / totalAmount : 0;
+                const personDiscount = Math.round(calculated * ratio);
+                split[person].amount -= personDiscount;
+                split[person].items.push({
+                    name: name || 'Diskon',
+                    amount: -personDiscount,
+                    isDiscount: true
+                });
+            });
+
+            totalAmount -= calculated;
+        }
+    });
+
     const editId = document.getElementById('editTransactionId').value;
 
     if (editId) {
@@ -1476,7 +1550,8 @@ document.getElementById('addTransactionForm').addEventListener('submit', functio
                 category,
                 totalAmount,
                 split,
-                extraCosts: extraCosts.length > 0 ? extraCosts : null
+                extraCosts: extraCosts.length > 0 ? extraCosts : null,
+                discounts: discounts.length > 0 ? discounts : null
             };
         }
         cancelEdit();
@@ -1490,6 +1565,7 @@ document.getElementById('addTransactionForm').addEventListener('submit', functio
             totalAmount,
             split,
             extraCosts: extraCosts.length > 0 ? extraCosts : null,
+            discounts: discounts.length > 0 ? discounts : null,
             splitStatus: {},
             status: 'pending',
             date: transactionDate || new Date().toISOString().split('T')[0]
@@ -1506,8 +1582,10 @@ document.getElementById('addTransactionForm').addEventListener('submit', functio
     document.getElementById('splitAmounts').innerHTML = '';
     document.getElementById('autoTotal').textContent = 'Rp 0';
     document.getElementById('extraCostsContainer').innerHTML = '';
+    document.getElementById('discountsContainer').innerHTML = '';
     document.getElementById('transactionDate').value = '';
     extraCostCounter = 0;
+    discountCounter = 0;
     document.getElementById('editTransactionId').value = '';
 
     refreshAll();
@@ -1578,6 +1656,74 @@ function handleExtraCostTypeChange(select) {
 
 document.getElementById('extraCostsContainer')?.addEventListener('input', function(e) {
     if (e.target.classList.contains('extra-cost-value') || e.target.classList.contains('extra-cost-name')) {
+        calculateAutoTotal();
+    }
+});
+
+// ============================================================================
+// DISCOUNTS
+// ============================================================================
+
+function addDiscountField() {
+    discountCounter++;
+    const container = document.getElementById('discountsContainer');
+    if (!container) return;
+
+    const fieldDiv = document.createElement('div');
+    fieldDiv.className = 'discount-row';
+    fieldDiv.id = `discountRow-${discountCounter}`;
+    fieldDiv.style.cssText = 'display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap;';
+    fieldDiv.innerHTML = `
+        <div class="form-group" style="min-width: 120px; flex: 1;">
+            <label>Jenis Diskon</label>
+            <select class="discount-type" onchange="handleDiscountTypeChange(this)">
+                <option value="percent">Persen (%)</option>
+                <option value="nominal">Nominal (Rp)</option>
+            </select>
+        </div>
+        <div class="form-group" style="min-width: 120px; flex: 1;">
+            <label>Nama Diskon</label>
+            <input type="text" class="discount-name" placeholder="Contoh: Promo, Voucher">
+        </div>
+        <div class="form-group" style="min-width: 100px; flex: 1;">
+            <label>Nilai</label>
+            <input type="number" class="discount-value" placeholder="0" min="0" disabled>
+        </div>
+        <button type="button" onclick="removeDiscountField(${discountCounter})" style="background: #dc2626; color: white; border: none; width: 36px; height: 36px; border-radius: 6px; cursor: pointer; margin-top: 20px;">×</button>
+    `;
+    container.appendChild(fieldDiv);
+
+    const newSelect = fieldDiv.querySelector('.discount-type');
+    if (newSelect) {
+        handleDiscountTypeChange(newSelect);
+    }
+
+    calculateAutoTotal();
+}
+
+function removeDiscountField(id) {
+    const row = document.getElementById(`discountRow-${id}`);
+    if (row) {
+        row.remove();
+        calculateAutoTotal();
+    }
+}
+
+function handleDiscountTypeChange(select) {
+    const input = select.closest('.discount-row').querySelector('.discount-value');
+    if (input) {
+        input.disabled = !select.value;
+        if (!select.value) {
+            input.value = '';
+        } else {
+            input.placeholder = select.value === 'percent' ? '10' : '5000';
+        }
+    }
+    calculateAutoTotal();
+}
+
+document.getElementById('discountsContainer')?.addEventListener('input', function(e) {
+    if (e.target.classList.contains('discount-value') || e.target.classList.contains('discount-name')) {
         calculateAutoTotal();
     }
 });
@@ -1755,12 +1901,12 @@ function editTransaction(id) {
         container.innerHTML = '';
 
         items.forEach(item => {
-            if (!item.isExtraCost) {
+            if (!item.isExtraCost && !item.isDiscount) {
                 addItem(person, item.name, item.amount);
             }
         });
 
-        if (items.filter(i => !i.isExtraCost).length === 0) {
+        if (items.filter(i => !i.isExtraCost && !i.isDiscount).length === 0) {
             addItem(person, '', typeof data === 'number' ? data : (data.amount || 0));
         }
     });
@@ -1777,6 +1923,22 @@ function editTransaction(id) {
                 lastRow.querySelector('.extra-cost-type').value = ec.type;
                 lastRow.querySelector('.extra-cost-name').value = ec.name || '';
                 lastRow.querySelector('.extra-cost-value').value = ec.value;
+            }
+        });
+    }
+
+    document.getElementById('discountsContainer').innerHTML = '';
+    discountCounter = 0;
+
+    if (transaction.discounts && transaction.discounts.length > 0) {
+        transaction.discounts.forEach(disc => {
+            addDiscountField();
+            const rows = document.querySelectorAll('.discount-row');
+            const lastRow = rows[rows.length - 1];
+            if (lastRow) {
+                lastRow.querySelector('.discount-type').value = disc.type;
+                lastRow.querySelector('.discount-name').value = disc.name || '';
+                lastRow.querySelector('.discount-value').value = disc.value;
             }
         });
     }
@@ -1798,8 +1960,10 @@ function cancelEdit() {
     document.getElementById('splitAmounts').innerHTML = '';
     document.getElementById('autoTotal').textContent = 'Rp 0';
     document.getElementById('extraCostsContainer').innerHTML = '';
+    document.getElementById('discountsContainer').innerHTML = '';
     document.getElementById('transactionDate').value = '';
     extraCostCounter = 0;
+    discountCounter = 0;
 
     updateCheckboxState();
 }
@@ -1843,6 +2007,9 @@ function downloadImage(transactionId) {
 
     if (t.extraCosts && t.extraCosts.length > 0) {
         contentHeight += 30 + t.extraCosts.length * 25;
+    }
+    if (t.discounts && t.discounts.length > 0) {
+        contentHeight += 30 + t.discounts.length * 25;
     }
     contentHeight += 90;
 
@@ -1936,6 +2103,23 @@ function downloadImage(transactionId) {
             ctx.fillText(ec.name + ' (' + (ec.type === 'percent' ? ec.value + '%' : formatCurrency(ec.value)) + ')', padding + 10, y + 8);
             ctx.fillStyle = '#b45309';
             ctx.fillText(formatCurrency(ec.calculated), width - padding - 70, y + 8);
+            y += 22;
+        });
+    }
+
+    if (t.discounts && t.discounts.length > 0) {
+        y += 10;
+        ctx.fillStyle = '#1f2937';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.fillText('Diskon:', padding, y);
+        y += 18;
+
+        t.discounts.forEach(disc => {
+            ctx.fillStyle = '#047857';
+            ctx.font = '10px sans-serif';
+            ctx.fillText(disc.name + ' (' + (disc.type === 'percent' ? disc.value + '%' : formatCurrency(disc.value)) + ')', padding + 10, y + 8);
+            ctx.fillStyle = '#10b981';
+            ctx.fillText('-' + formatCurrency(disc.calculated), width - padding - 70, y + 8);
             y += 22;
         });
     }
@@ -2304,6 +2488,9 @@ window.confirmReset = confirmReset;
 window.addExtraCostField = addExtraCostField;
 window.removeExtraCostField = removeExtraCostField;
 window.handleExtraCostTypeChange = handleExtraCostTypeChange;
+window.addDiscountField = addDiscountField;
+window.removeDiscountField = removeDiscountField;
+window.handleDiscountTypeChange = handleDiscountTypeChange;
 window.showHistory = showHistory;
 window.hideHistory = hideHistory;
 window.renderHistory = renderHistory;
