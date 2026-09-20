@@ -726,7 +726,11 @@ function showPersonHistory(personKey) {
     });
 
     if (personTransactions.length === 0) {
-        content.innerHTML = '<p class="no-data">Belum ada transaksi</p>';
+        content.innerHTML = '<div class="empty-state">' +
+            '<div class="empty-state-icon">📭</div>' +
+            '<div class="empty-state-title">Belum ada transaksi</div>' +
+            '<div class="empty-state-hint">Orang ini belum terlibat dalam transaksi apapun.</div>' +
+            '</div>';
     } else {
         let totalPaid = 0;
         let totalOwes = 0;
@@ -807,7 +811,13 @@ function renderSettlements() {
     if (!container) return;
 
     if (settlements.length === 0) {
-        container.innerHTML = '<li class="no-data">Semua sudah settle! ✓</li>';
+        container.innerHTML = '<li class="settlement-empty">' +
+            '<div class="empty-state">' +
+            '<div class="empty-state-icon">✓</div>' +
+            '<div class="empty-state-title">Semua sudah settle</div>' +
+            '<div class="empty-state-hint">Tidak ada pembayaran yang perlu dilakukan saat ini.</div>' +
+            '</div>' +
+            '</li>';
         return;
     }
 
@@ -1179,7 +1189,13 @@ function renderHistory() {
     const paginatedTransactions = settledTransactions.slice(startIndex, startIndex + itemsPerPage);
 
     if (paginatedTransactions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #6b7280;">Belum ada transaksi yang settled</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="table-empty-cell">' +
+            '<div class="empty-state">' +
+            '<div class="empty-state-icon">📜</div>' +
+            '<div class="empty-state-title">Belum ada riwayat</div>' +
+            '<div class="empty-state-hint">Belum ada transaksi yang settled.</div>' +
+            '</div>' +
+            '</td></tr>';
         document.getElementById('historyPagination').innerHTML = '';
         return;
     }
