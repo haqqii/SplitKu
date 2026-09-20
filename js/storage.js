@@ -812,17 +812,84 @@ const Storage = {
     // SYNC FROM GOOGLE SHEETS
     // ============================================================================
 
-    // Sheet export URL — change this if the source sheet changes
-    SYNC_URL: 'https://docs.google.com/spreadsheets/d/17w-BFrDu60z3PpXIe0JqjMFEU1yUQmMeVlLO64742OA/export?format=csv&gid=661820092',
+    // User-configured sync URL (persisted in localStorage)
+    SYNC_URL_KEY: 'hartaGonoGini_syncUrl',
     LAST_SYNC_KEY: 'hartaGonoGini_lastSync',
+
+    // Get the user's sync URL (empty string if not set)
+    getSyncUrl: function() {
+        try { return localStorage.getItem(this.SYNC_URL_KEY) || ''; }
+        catch (e) { return ''; }
+    },
+
+    // Save the user's sync URL
+    setSyncUrl: function(url) {
+        try { localStorage.setItem(this.SYNC_URL_KEY, url); }
+        catch (e) { /* ignore quota */ }
+    },
+
+    // Convert any Google Sheets URL to its CSV export URL
+    // Accepts /edit URLs and returns /export?format=csv&gid=...
+    toCsvExportUrl: function(input) {
+        if (!input) return '';
+        let url = input.trim();
+
+        // Already an export URL — pass through
+        if (url.includes('/export?')) return url;
+
+        // Must be a Google Sheets URL
+        if (!/^https?:\/\/(docs\.google\.com\/spreadsheets\/|sheets\.google\.com\/)/.test(url)) {
+            return null; // signal invalid
+        }
+
+        // Extract gid from query string or hash
+        let gid = '0';
+        const hashMatch = url.match(/[#&?]gid=(\d+)/);
+        const queryMatch = url.match(/[?&]gid=(\d+)/);
+        if (hashMatch) gid = hashMatch[1];
+        else if (queryMatch) gid = queryMatch[1];
+
+        // Strip everything after the path's document id
+        const docMatch = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+        if (!docMatch) return null;
+
+        return `https://docs.google.com/spreadsheets/d/${docMatch[1]}/export?format=csv&gid=${gid}`;
+    },
 
     // Fetch sheet and parse into app's internal format
     syncFromUrl: async function(url) {
-        const target = url || this.SYNC_URL;
+        const target = url || this.getSyncUrl();
+        if (!target) throw new Error('URL Google Sheet belum diisi');
         const response = await fetch(target, { redirect: 'follow' });
         if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         const csv = await response.text();
         return this.parseSyncCSV(csv);
+    },
+
+    // Generate a CSV template with the expected schema and a sample row
+    // The user can copy this to their sheet and replace with their data
+    getTemplateCSV: function() {
+        const sample = [
+            'ID,Tanggal,Deskripsi,Kategori,Pembayar,Total,Status,,Qulub,Yohn,Haqqi,Aldo,Acha,Lintang,Mega',
+            '1,10 May 26,Coffee,Makan,Qulub,"Rp 50,000",Selesai,,"Rp 25,000","Rp 25,000",,,,',
+            '2,10 May 26,Lunch,Makan,Yohn,"Rp 80,000",Pending,,"Rp 20,000","Rp 20,000",,"Rp 20,000","Rp 20,000",',
+            ',,,,,,,TOTAL:,"Rp 45,000","Rp 45,000",,"Rp 20,000","Rp 20,000",'
+        ];
+        return sample.join('\n');
+    },
+
+    downloadTemplate: function() {
+        const csv = this.getTemplateCSV();
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'harta-gono-gini-template.csv';
+        link.click();
+        URL.revokeObjectURL(url);
+        if (typeof showToast === 'function') {
+            showToast('Template downloaded');
+        }
     },
 
     // Parse the Google Sheet CSV format

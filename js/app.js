@@ -1930,81 +1930,176 @@ function confirmImport() {
 // SYNC FROM GOOGLE SHEET
 // ============================================================================
 
-let selectedSyncMode = 'merge';
+let _syncDebounceTimer = null;
+let _syncInProgress = false;
 
 function showSyncConfirmModal() {
-    // Update last sync display
-    const el = document.getElementById('lastSyncDisplay');
-    if (el) {
+    // Pre-fill URL from storage
+    const input = document.getElementById('syncUrlInput');
+    if (input && window.Storage && Storage.getSyncUrl) {
+        const saved = Storage.getSyncUrl();
+        // Show the saved *original* (edit URL) if possible, or the export URL
+        input.value = saved || '';
+    }
+
+    // Last sync info
+    const lastEl = document.getElementById('lastSyncDisplay');
+    if (lastEl) {
         const last = window.Storage && Storage.getLastSync ? Storage.getLastSync() : null;
         if (last) {
             const d = new Date(last);
-            el.textContent = `Sinkron terakhir: ${d.toLocaleString('id-ID')}`;
+            lastEl.textContent = `Sinkron terakhir: ${d.toLocaleString('id-ID')}`;
         } else {
-            el.textContent = 'Belum pernah sinkron';
+            lastEl.textContent = 'Belum pernah sinkron';
         }
     }
-    selectedSyncMode = 'merge';
-    selectSyncMode('merge');
-    document.getElementById('syncConfirmModal').classList.add('show');
+
+    // Reset status + button state
+    updateSyncUrlStatus('', '');
+    updateSyncButton();
+
+    document.getElementById('syncUrlModal').classList.add('show');
+    setTimeout(() => input && input.focus(), 0);
 }
 
-function closeSyncConfirmModal() {
-    document.getElementById('syncConfirmModal').classList.remove('show');
-}
-
-function selectSyncMode(mode) {
-    selectedSyncMode = mode;
-    const replaceOption = document.getElementById('syncReplaceOption');
-    const mergeOption = document.getElementById('syncMergeOption');
-    const replaceRadio = document.getElementById('syncModeReplace');
-    const mergeRadio = document.getElementById('syncModeMerge');
-
-    if (mode === 'replace') {
-        replaceOption.style.borderColor = '#4f46e5';
-        replaceOption.style.background = '#eef2ff';
-        mergeOption.style.borderColor = '#e5e7eb';
-        mergeOption.style.background = 'transparent';
-        replaceRadio.checked = true;
-        mergeRadio.checked = false;
-    } else {
-        mergeOption.style.borderColor = '#4f46e5';
-        mergeOption.style.background = '#eef2ff';
-        replaceOption.style.borderColor = '#e5e7eb';
-        replaceOption.style.background = 'transparent';
-        mergeRadio.checked = true;
-        replaceRadio.checked = false;
+function closeSyncUrlModal() {
+    document.getElementById('syncUrlModal').classList.remove('show');
+    if (_syncDebounceTimer) {
+        clearTimeout(_syncDebounceTimer);
+        _syncDebounceTimer = null;
     }
 }
 
-function confirmSync() {
-    closeSyncConfirmModal();
-    if (!window.Storage || !Storage.syncFromUrl) {
-        showAlert('Storage.syncFromUrl tidak tersedia');
+// Called on every keystroke in the URL input
+function onSyncUrlInput() {
+    const input = document.getElementById('syncUrlInput');
+    const raw = input ? input.value.trim() : '';
+
+    updateSyncButton();
+
+    // Validate
+    if (!raw) {
+        updateSyncUrlStatus('', '');
+        if (_syncDebounceTimer) clearTimeout(_syncDebounceTimer);
         return;
+    }
+
+    const exportUrl = Storage.toCsvExportUrl(raw);
+    if (!exportUrl) {
+        updateSyncUrlStatus('error', '❌ URL harus dari Google Sheets');
+        if (_syncDebounceTimer) clearTimeout(_syncDebounceTimer);
+        return;
+    }
+
+    updateSyncUrlStatus('ok', '✓ URL valid');
+
+    // Debounce auto-sync: trigger ~800ms after last keystroke
+    if (_syncDebounceTimer) clearTimeout(_syncDebounceTimer);
+    _syncDebounceTimer = setTimeout(() => {
+        _syncDebounceTimer = null;
+        if (!_syncInProgress) {
+            runSync(exportUrl);
+        }
+    }, 800);
+}
+
+// Enter key triggers sync immediately
+function onSyncUrlKeyDown(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        if (_syncDebounceTimer) clearTimeout(_syncDebounceTimer);
+        const btn = document.getElementById('syncNowBtn');
+        if (btn && !btn.disabled) confirmSync();
+    }
+}
+
+function updateSyncUrlStatus(type, msg) {
+    const el = document.getElementById('syncUrlStatus');
+    if (!el) return;
+    el.textContent = msg;
+    el.style.color = type === 'error' ? '#dc2626' : (type === 'ok' ? '#059669' : '#9ca3af');
+}
+
+function updateSyncButton() {
+    const input = document.getElementById('syncUrlInput');
+    const btn = document.getElementById('syncNowBtn');
+    if (!input || !btn) return;
+    const exportUrl = Storage.toCsvExportUrl(input.value.trim());
+    const valid = !!exportUrl;
+    btn.disabled = !valid;
+    btn.style.opacity = valid ? '1' : '0.5';
+    btn.style.cursor = valid ? 'pointer' : 'not-allowed';
+}
+
+function downloadSyncTemplate() {
+    if (window.Storage && typeof Storage.downloadTemplate === 'function') {
+        Storage.downloadTemplate();
+    } else {
+        showAlert('Template tidak tersedia');
+    }
+}
+
+// Manual sync (button click)
+function confirmSync() {
+    const input = document.getElementById('syncUrlInput');
+    const raw = input ? input.value.trim() : '';
+    const exportUrl = Storage.toCsvExportUrl(raw);
+    if (!exportUrl) {
+        updateSyncUrlStatus('error', '❌ URL tidak valid');
+        return;
+    }
+    runSync(exportUrl);
+}
+
+// Actual sync runner — used by both auto-sync and button click
+function runSync(exportUrl) {
+    if (_syncInProgress) return;
+    _syncInProgress = true;
+
+    // Persist URL
+    const rawInput = document.getElementById('syncUrlInput').value.trim();
+    if (window.Storage && Storage.setSyncUrl) {
+        // Save the user's original URL (not the export URL), so the modal pre-fills it nicely
+        Storage.setSyncUrl(rawInput);
     }
 
     showLoadingToast('Mengambil data dari Google Sheet...');
 
-    Storage.syncFromUrl().then(syncData => {
-        const result = Storage.applySync(syncData, selectedSyncMode);
-        hideLoadingToast();
+    fetch(exportUrl, { redirect: 'follow' })
+        .then(r => {
+            if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+            return r.text();
+        })
+        .then(csv => {
+            const syncData = Storage.parseSyncCSV(csv);
+            const result = Storage.applySync(syncData, 'merge');
+            hideLoadingToast();
+            _syncInProgress = false;
 
-        // Reload from storage so UI matches new state
-        loadFromStorage();
-        refreshAll();
-        renderPeopleManage();
-        renderFormPeople();
+            // Refresh UI
+            loadFromStorage();
+            refreshAll();
+            renderPeopleManage();
+            renderFormPeople();
 
-        showToast(
-            `Sinkron selesai (${result.mode === 'replace' ? 'replace' : 'merge'}): ` +
-            `${result.added} baru${result.skipped > 0 ? `, ${result.skipped} dilewati` : ''}, ` +
-            `total ${result.total} transaksi`
-        );
-    }).catch(err => {
-        hideLoadingToast();
-        showAlert('Sinkron gagal: ' + err.message);
-    });
+            // Update last sync display
+            const lastEl = document.getElementById('lastSyncDisplay');
+            if (lastEl) {
+                const d = new Date();
+                lastEl.textContent = `Sinkron terakhir: ${d.toLocaleString('id-ID')}`;
+            }
+
+            showToast(
+                `Sinkron selesai: ${result.added} baru${result.skipped > 0 ? `, ${result.skipped} dilewati` : ''}, ` +
+                `total ${result.total} transaksi`
+            );
+        })
+        .catch(err => {
+            hideLoadingToast();
+            _syncInProgress = false;
+            updateSyncUrlStatus('error', '❌ ' + err.message);
+            showAlert('Sinkron gagal: ' + err.message);
+        });
 }
 
 function showToast(message) {
@@ -2739,8 +2834,10 @@ window.closePersonHistoryModal = closePersonHistoryModal;
 window.closeImportConfirmModal = closeImportConfirmModal;
 window.confirmImport = confirmImport;
 window.showSyncConfirmModal = showSyncConfirmModal;
-window.closeSyncConfirmModal = closeSyncConfirmModal;
-window.selectSyncMode = selectSyncMode;
+window.closeSyncUrlModal = closeSyncUrlModal;
+window.onSyncUrlInput = onSyncUrlInput;
+window.onSyncUrlKeyDown = onSyncUrlKeyDown;
+window.downloadSyncTemplate = downloadSyncTemplate;
 window.confirmSync = confirmSync;
 window.showImportConfirmModal = showImportConfirmModal;
 window.selectFileForImport = selectFileForImport;

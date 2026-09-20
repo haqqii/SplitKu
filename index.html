@@ -373,34 +373,40 @@
     </div>
 
     <!-- Sync From Google Sheet Modal -->
-    <div id="syncConfirmModal" class="modal">
-        <div class="modal-backdrop" onclick="closeSyncConfirmModal()"></div>
-        <div class="modal-content" style="text-align: center; max-width: 420px;">
-            <div style="width: 70px; height: 70px; background: #dbeafe; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;">
-                <span style="font-size: 32px;">🔄</span>
+    <div id="syncUrlModal" class="modal">
+        <div class="modal-backdrop" onclick="closeSyncUrlModal()"></div>
+        <div class="modal-content" style="text-align: left; max-width: 480px;">
+            <div style="text-align: center; margin-bottom: 16px;">
+                <div style="width: 70px; height: 70px; background: #dbeafe; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;">
+                    <span style="font-size: 32px;">🔄</span>
+                </div>
+                <h3 style="margin-bottom: 6px; color: #1f2937;">Sinkron dari Google Sheet</h3>
+                <p style="color: #6b7280; font-size: 0.9rem; line-height: 1.5;">Masukkan link Google Sheet Anda, lalu data otomatis di-sync.</p>
             </div>
-            <h3 style="margin-bottom: 8px; color: #1f2937;">Sinkron dari Google Sheet</h3>
-            <p style="color: #6b7280; margin-bottom: 12px; line-height: 1.5; font-size: 0.9rem;">Ambil data terbaru dari spreadsheet sumber.</p>
-            <p id="lastSyncDisplay" style="color: #9ca3af; margin-bottom: 16px; font-size: 0.8rem; font-style: italic;">Memuat info sinkron...</p>
-            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-                <label id="syncMergeOption" style="display: flex; align-items: flex-start; gap: 12px; padding: 14px; border: 2px solid #4f46e5; background: #eef2ff; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onclick="selectSyncMode('merge')">
-                    <input type="radio" name="syncMode" value="merge" id="syncModeMerge" checked style="margin-top: 3px;">
-                    <div style="text-align: left;">
-                        <div style="font-weight: 600; color: #1f2937; margin-bottom: 2px;">Gabungkan</div>
-                        <div style="font-size: 0.85rem; color: #6b7280;">Tambahkan transaksi baru dari sheet ke data lokal</div>
-                    </div>
-                </label>
-                <label id="syncReplaceOption" style="display: flex; align-items: flex-start; gap: 12px; padding: 14px; border: 2px solid #e5e7eb; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onclick="selectSyncMode('replace')">
-                    <input type="radio" name="syncMode" value="replace" id="syncModeReplace" style="margin-top: 3px;">
-                    <div style="text-align: left;">
-                        <div style="font-weight: 600; color: #1f2937; margin-bottom: 2px;">Ganti Semua</div>
-                        <div style="font-size: 0.85rem; color: #6b7280;">Hapus data lokal, pakai data sheet saja</div>
-                    </div>
-                </label>
+
+            <label for="syncUrlInput" style="display: block; font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 6px;">Link Google Sheet</label>
+            <input type="url" id="syncUrlInput" placeholder="https://docs.google.com/spreadsheets/d/..." autocomplete="off"
+                   style="width: 100%; padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; font-family: monospace;"
+                   oninput="onSyncUrlInput()" onkeydown="onSyncUrlKeyDown(event)">
+            <p id="syncUrlStatus" style="font-size: 0.8rem; margin: 6px 0 0; min-height: 18px;"></p>
+
+            <div style="display: flex; align-items: center; gap: 10px; margin: 14px 0; padding: 12px; background: #f9fafb; border-radius: 8px;">
+                <span style="font-size: 0.85rem; color: #6b7280; flex: 1;">📋 Belum punya template?</span>
+                <button onclick="downloadSyncTemplate()" type="button"
+                        style="background: #10b981; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;">
+                    Download Template
+                </button>
             </div>
+
+            <p style="font-size: 0.75rem; color: #9ca3af; margin-bottom: 16px;">
+                💡 Pastikan sheet Anda disetel <strong>Anyone with the link can view</strong>. Link akan disimpan untuk sync berikutnya.
+            </p>
+
+            <p id="lastSyncDisplay" style="color: #9ca3af; margin-bottom: 12px; font-size: 0.8rem; font-style: italic;">Memuat info sinkron...</p>
+
             <div style="display: flex; gap: 12px;">
-                <button onclick="closeSyncConfirmModal()" style="flex: 1; background: #f3f4f6; color: #374151; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Batal</button>
-                <button onclick="confirmSync()" style="flex: 1; background: #4f46e5; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Sinkron Sekarang</button>
+                <button onclick="closeSyncUrlModal()" style="flex: 1; background: #f3f4f6; color: #374151; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Tutup</button>
+                <button id="syncNowBtn" onclick="confirmSync()" disabled style="flex: 1; background: #4f46e5; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: not-allowed; font-size: 0.95rem; font-weight: 500; opacity: 0.5;">Sinkron</button>
             </div>
         </div>
     </div>
