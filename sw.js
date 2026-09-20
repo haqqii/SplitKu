@@ -2,7 +2,9 @@
 // SERVICE WORKER - PWA Offline Support
 // ============================================================================
 
-const CACHE_NAME = 'splitku-v1';
+// Cache version: BUMP on every deploy so the SW doesn't serve stale assets
+// (otherwise the browser keeps running the old app.js when new code is pushed)
+const CACHE_NAME = 'splitku-v2';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
