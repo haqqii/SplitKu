@@ -2054,19 +2054,26 @@ function confirmSync() {
     runSync(exportUrl);
 }
 
-// Actual sync runner — used by both auto-sync and button click
-function runSync(exportUrl) {
+// Track last successful sync time (for focus-sync debouncing)
+let _lastSyncCompletedAt = 0;
+const AUTO_SYNC_MIN_INTERVAL_MS = 30_000; // 30s — skip focus-sync if just synced
+
+// Actual sync runner — used by auto-sync, button click, and Enter key
+// options.silent = true hides toasts (used for background sync)
+function runSync(exportUrl, options = {}) {
+    const silent = options.silent === true;
     if (_syncInProgress) return;
     _syncInProgress = true;
 
-    // Persist URL
-    const rawInput = document.getElementById('syncUrlInput').value.trim();
-    if (window.Storage && Storage.setSyncUrl) {
-        // Save the user's original URL (not the export URL), so the modal pre-fills it nicely
-        Storage.setSyncUrl(rawInput);
+    // Persist URL (skip when called from auto-sync where no input is being edited)
+    if (!silent) {
+        const rawInput = document.getElementById('syncUrlInput');
+        if (rawInput && window.Storage && Storage.setSyncUrl) {
+            Storage.setSyncUrl(rawInput.value.trim());
+        }
     }
 
-    showLoadingToast('Mengambil data dari Google Sheet...');
+    if (!silent) showLoadingToast('Mengambil data dari Google Sheet...');
 
     fetch(exportUrl, { redirect: 'follow' })
         .then(r => {
@@ -2076,6 +2083,7 @@ function runSync(exportUrl) {
         .then(csv => {
             const syncData = Storage.parseSyncCSV(csv);
             const result = Storage.applySync(syncData, 'merge');
+            _lastSyncCompletedAt = Date.now();
             hideLoadingToast();
             _syncInProgress = false;
 
@@ -2085,24 +2093,47 @@ function runSync(exportUrl) {
             renderPeopleManage();
             renderFormPeople();
 
-            // Update last sync display
+            // Update last sync display (only if modal is open)
             const lastEl = document.getElementById('lastSyncDisplay');
             if (lastEl) {
                 const d = new Date();
                 lastEl.textContent = `Sinkron terakhir: ${d.toLocaleString('id-ID')}`;
             }
 
-            showToast(
-                `Sinkron selesai: ${result.added} baru${result.skipped > 0 ? `, ${result.skipped} dilewati` : ''}, ` +
-                `total ${result.total} transaksi`
-            );
+            if (!silent) {
+                showToast(
+                    `Sinkron selesai: ${result.added} baru${result.skipped > 0 ? `, ${result.skipped} dilewati` : ''}, ` +
+                    `total ${result.total} transaksi`
+                );
+            }
         })
         .catch(err => {
             hideLoadingToast();
             _syncInProgress = false;
-            updateSyncUrlStatus('error', '❌ ' + err.message);
-            showAlert('Sinkron gagal: ' + err.message);
+            if (silent) {
+                // Background sync failure — log only, don't disturb user
+                console.warn('Background sync gagal:', err.message);
+            } else {
+                updateSyncUrlStatus('error', '❌ ' + err.message);
+                showAlert('Sinkron gagal: ' + err.message);
+            }
         });
+}
+
+// Trigger a silent sync from the user's saved URL.
+// Returns true if a sync was kicked off, false otherwise.
+function tryAutoSync() {
+    if (_syncInProgress) return false;
+    if (!window.Storage || !Storage.getSyncUrl) return false;
+
+    const rawUrl = Storage.getSyncUrl();
+    if (!rawUrl) return false;
+
+    const exportUrl = Storage.toCsvExportUrl(rawUrl);
+    if (!exportUrl) return false;
+
+    runSync(exportUrl, { silent: true });
+    return true;
 }
 
 function showToast(message) {
@@ -2869,6 +2900,32 @@ updateCheckboxState();
 const today = new Date().toISOString().split('T')[0];
 const dateInput = document.getElementById('transactionDate');
 if (dateInput) dateInput.value = today;
+
+// ============================================================================
+// AUTO-SYNC: on app load + when tab regains focus
+// ============================================================================
+// (A) Auto-sync on app load — fire after init so UI is responsive
+setTimeout(() => {
+    if (!tryAutoSync()) {
+        console.log('Auto-sync dilewati: URL belum diset');
+    } else {
+        console.log('Auto-sync on load dimulai');
+    }
+}, 100);
+
+// (C) Auto-sync on tab focus — skip if just synced (< 30s) to avoid spam
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    if (_syncInProgress) return;
+    const sinceLast = Date.now() - _lastSyncCompletedAt;
+    if (sinceLast < AUTO_SYNC_MIN_INTERVAL_MS) {
+        console.log('Auto-sync dilewati: baru saja sync', Math.round(sinceLast/1000), 's lalu');
+        return;
+    }
+    if (tryAutoSync()) {
+        console.log('Auto-sync on focus dimulai');
+    }
+});
 
 console.log('app.js fully loaded');
 console.log('toggleExportMenu:', typeof window.toggleExportMenu);
