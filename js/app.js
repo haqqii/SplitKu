@@ -1272,7 +1272,7 @@ function settleBySettlement(from, to, amount) {
     amountSpan.style.fontSize = '1.3rem';
     amountSpan.style.color = '#10b981';
     amountSpan.style.fontWeight = 'bold';
-    amountSpan.textContent = `Rp ${formatCurrency(amount).replace('Rp ', '')}`;
+    amountSpan.textContent = formatCurrency(amount);
     msg.appendChild(amountSpan);
 
     document.getElementById('confirmSettleModal').classList.add('show');
