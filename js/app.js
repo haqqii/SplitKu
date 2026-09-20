@@ -2082,9 +2082,6 @@ function confirmSync() {
 function closeSyncModeModal() {
     document.getElementById('syncModeModal').classList.remove('show');
     _pendingSyncUrl = '';
-    // Reset the delete-missing toggle so it doesn't carry over to next sync
-    const cb = document.getElementById('deleteMissingToggle');
-    if (cb) cb.checked = false;
 }
 
 // mode: 'once' = sync one time, 'auto' = sync + enable auto-sync for future
@@ -2100,8 +2097,8 @@ function confirmSyncMode(mode) {
         if (cb) cb.checked = true;
     }
 
-    const deleteMissing = document.getElementById('deleteMissingToggle')?.checked === true;
-    runSync(url, { deleteMissing });
+    // deleteMissing is always true — sheet is the source of truth for what's present
+    runSync(url, { deleteMissing: true });
 }
 
 // Track last successful sync time (for focus-sync debouncing)
