@@ -1113,25 +1113,26 @@ function renderPagination(containerId, totalPages, currentPage, onPageChange) {
         return;
     }
 
-    let html = '';
+    let html = '<div class="pagination">';
 
     if (currentPage > 1) {
-        html += `<button class="page-btn" data-page="${currentPage - 1}" data-container="${containerId}" style="padding:4px 10px;border:1px solid #e5e7eb;background:white;border-radius:4px;cursor:pointer;">&#8249;</button>`;
+        html += `<button class="page-btn" data-page="${currentPage - 1}" data-container="${containerId}">‹</button>`;
     }
 
     for (let i = 1; i <= totalPages; i++) {
         if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
-            const active = i === currentPage ? 'background:#4f46e5;color:white;' : '';
-            html += `<button class="page-btn" data-page="${i}" data-container="${containerId}" style="padding:4px 10px;border:1px solid #e5e7eb;background:white;border-radius:4px;cursor:pointer;${active}">${i}</button>`;
+            const active = i === currentPage ? ' active' : '';
+            html += `<button class="page-btn${active}" data-page="${i}" data-container="${containerId}">${i}</button>`;
         } else if (i === currentPage - 2 || i === currentPage + 2) {
-            html += `<span style="padding:4px;">...</span>`;
+            html += `<span class="page-ellipsis">…</span>`;
         }
     }
 
     if (currentPage < totalPages) {
-        html += `<button class="page-btn" data-page="${currentPage + 1}" data-container="${containerId}" style="padding:4px 10px;border:1px solid #e5e7eb;background:white;border-radius:4px;cursor:pointer;">&#8250;</button>`;
+        html += `<button class="page-btn" data-page="${currentPage + 1}" data-container="${containerId}">›</button>`;
     }
 
+    html += '</div>';
     container.innerHTML = html;
 }
 
