@@ -76,10 +76,26 @@ body {
 }
 
 header {
-    background: white;
-    border-bottom: 1px solid var(--gray-200);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
     padding: 20px 0;
     margin-bottom: 28px;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04), 0 4px 12px rgba(79, 70, 229, 0.12);
+}
+
+header h1 {
+    color: white;
+}
+
+header p {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+header .header-mark {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 header h1 {
@@ -1069,6 +1085,17 @@ footer {
 
 .btn-primary { background: var(--primary); color: white; }
 .btn-primary:hover:not(:disabled) { background: var(--primary-dark); }
+
+.btn-light {
+    background: white;
+    color: var(--primary);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.btn-light:hover:not(:disabled) {
+    background: var(--gray-50);
+    color: var(--primary-dark);
+}
 
 .btn-secondary { background: var(--gray-100); color: var(--gray-700); border-color: var(--gray-200); }
 .btn-secondary:hover:not(:disabled) { background: var(--gray-200); }
