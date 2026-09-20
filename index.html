@@ -113,9 +113,9 @@
     <!-- Kelola Orang -->
     <div class="container">
         <div class="card" style="margin-bottom: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div class="card-header">
                 <h2 style="margin: 0; border: none; padding: 0;">👥 Kelola Orang</h2>
-                <button onclick="addPerson()" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">+ Tambah Orang</button>
+                <button onclick="addPerson()" class="btn btn-primary">+ Tambah Orang</button>
             </div>
             <div id="peopleList"></div>
         </div>
@@ -125,9 +125,9 @@
         <div class="grid">
             <!-- Settlement Card -->
             <div class="card" style="grid-column: 1 / -1;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="card-header">
                     <h2 style="margin: 0;">🔄 Penyelesaian</h2>
-                    <button onclick="downloadSettlementImage()" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 0.9rem;">📥 Download Penyelesaian</button>
+                    <button onclick="downloadSettlementImage()" class="btn btn-secondary">📥 Download</button>
                 </div>
                 <ul class="settlement-list" id="settlementList">
                 </ul>
@@ -136,9 +136,9 @@
 
         <!-- Add/Edit Transaction -->
         <div class="card" style="margin-top: 20px;" id="transactionFormCard">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div class="card-header">
                 <h2 id="formTitle" style="margin: 0; border: none; padding: 0;">➕ Tambah Transaksi Baru</h2>
-                <button type="button" id="cancelEditBtn" onclick="cancelEdit()" style="display: none; padding: 6px 12px; background: var(--gray-400); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">✕ Batal</button>
+                <button type="button" id="cancelEditBtn" onclick="cancelEdit()" class="btn btn-secondary" style="display: none;">✕ Batal</button>
             </div>
             <form id="addTransactionForm">
                 <input type="hidden" id="editTransactionId" value="">

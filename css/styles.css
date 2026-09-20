@@ -595,6 +595,77 @@ header .header-titles {
 }
 
 /* ============================================================================
+   CARD HEADER — consistent layout for card titles + actions
+   ============================================================================ */
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-4);
+}
+
+.card-header h2 {
+    margin: 0;
+    border: none;
+    padding: 0;
+    font-size: 1.15rem;
+    color: var(--gray-800);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* ============================================================================
+   MOBILE RESPONSIVE
+   ============================================================================ */
+@media (max-width: 768px) {
+    .container { padding: var(--space-3); }
+    .card { padding: var(--space-4); border-radius: var(--radius-md); }
+
+    /* Header stacks on small screens */
+    header h1 { font-size: 1.2rem; }
+    header .header-titles p { font-size: 0.8rem; }
+
+    /* Buttons in card-header stay accessible but smaller */
+    .card-header .btn { padding: 8px 12px; font-size: 0.85rem; }
+
+    /* Stat cards: tighter padding */
+    .stat-grid { gap: var(--space-3); }
+    .stat-card { padding: var(--space-3); }
+    .stat-card .stat-value { font-size: 1.05rem; }
+
+    /* Modal: full-screen-ish on small screens */
+    .modal-content { width: calc(100% - 16px); padding: var(--space-4); max-height: calc(100vh - 32px); }
+
+    /* Tables: horizontal scroll instead of breaking layout */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .transactions-table { min-width: 600px; }
+
+    /* Form grid: single column on mobile */
+    .form-grid { grid-template-columns: 1fr !important; }
+
+    /* Touch targets: minimum 44px tap area */
+    .btn { min-height: 40px; }
+    .btn-icon-only { min-width: 40px; min-height: 40px; }
+    .person-input { min-height: 40px; }
+
+    /* Settlement people: wrap nicely */
+    .settlement-main { flex-direction: column; align-items: stretch; }
+    .settlement-action { justify-content: space-between; }
+
+    /* Header actions: smaller icons */
+    header .btn { padding: 6px 10px; }
+}
+
+@media (max-width: 480px) {
+    .stat-card .stat-icon { width: 32px; height: 32px; font-size: 1rem; }
+    .modal-content { border-radius: var(--radius-md); }
+    .person-avatar { width: 32px; height: 32px; font-size: 0.85rem; }
+}
+
+/* ============================================================================
    MODAL — open/close animations + clean header
    ============================================================================ */
 .modal {
