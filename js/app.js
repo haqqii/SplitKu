@@ -1926,6 +1926,87 @@ function confirmImport() {
     console.log('Storage.processImportFile dispatched');
 }
 
+// ============================================================================
+// SYNC FROM GOOGLE SHEET
+// ============================================================================
+
+let selectedSyncMode = 'merge';
+
+function showSyncConfirmModal() {
+    // Update last sync display
+    const el = document.getElementById('lastSyncDisplay');
+    if (el) {
+        const last = window.Storage && Storage.getLastSync ? Storage.getLastSync() : null;
+        if (last) {
+            const d = new Date(last);
+            el.textContent = `Sinkron terakhir: ${d.toLocaleString('id-ID')}`;
+        } else {
+            el.textContent = 'Belum pernah sinkron';
+        }
+    }
+    selectedSyncMode = 'merge';
+    selectSyncMode('merge');
+    document.getElementById('syncConfirmModal').classList.add('show');
+}
+
+function closeSyncConfirmModal() {
+    document.getElementById('syncConfirmModal').classList.remove('show');
+}
+
+function selectSyncMode(mode) {
+    selectedSyncMode = mode;
+    const replaceOption = document.getElementById('syncReplaceOption');
+    const mergeOption = document.getElementById('syncMergeOption');
+    const replaceRadio = document.getElementById('syncModeReplace');
+    const mergeRadio = document.getElementById('syncModeMerge');
+
+    if (mode === 'replace') {
+        replaceOption.style.borderColor = '#4f46e5';
+        replaceOption.style.background = '#eef2ff';
+        mergeOption.style.borderColor = '#e5e7eb';
+        mergeOption.style.background = 'transparent';
+        replaceRadio.checked = true;
+        mergeRadio.checked = false;
+    } else {
+        mergeOption.style.borderColor = '#4f46e5';
+        mergeOption.style.background = '#eef2ff';
+        replaceOption.style.borderColor = '#e5e7eb';
+        replaceOption.style.background = 'transparent';
+        mergeRadio.checked = true;
+        replaceRadio.checked = false;
+    }
+}
+
+function confirmSync() {
+    closeSyncConfirmModal();
+    if (!window.Storage || !Storage.syncFromUrl) {
+        showAlert('Storage.syncFromUrl tidak tersedia');
+        return;
+    }
+
+    showLoadingToast('Mengambil data dari Google Sheet...');
+
+    Storage.syncFromUrl().then(syncData => {
+        const result = Storage.applySync(syncData, selectedSyncMode);
+        hideLoadingToast();
+
+        // Reload from storage so UI matches new state
+        loadFromStorage();
+        refreshAll();
+        renderPeopleManage();
+        renderFormPeople();
+
+        showToast(
+            `Sinkron selesai (${result.mode === 'replace' ? 'replace' : 'merge'}): ` +
+            `${result.added} baru${result.skipped > 0 ? `, ${result.skipped} dilewati` : ''}, ` +
+            `total ${result.total} transaksi`
+        );
+    }).catch(err => {
+        hideLoadingToast();
+        showAlert('Sinkron gagal: ' + err.message);
+    });
+}
+
 function showToast(message) {
     const toast = document.getElementById('toast');
     if (toast) {
@@ -2657,6 +2738,10 @@ window.showPersonHistory = showPersonHistory;
 window.closePersonHistoryModal = closePersonHistoryModal;
 window.closeImportConfirmModal = closeImportConfirmModal;
 window.confirmImport = confirmImport;
+window.showSyncConfirmModal = showSyncConfirmModal;
+window.closeSyncConfirmModal = closeSyncConfirmModal;
+window.selectSyncMode = selectSyncMode;
+window.confirmSync = confirmSync;
 window.showImportConfirmModal = showImportConfirmModal;
 window.selectFileForImport = selectFileForImport;
 

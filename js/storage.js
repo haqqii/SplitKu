@@ -806,6 +806,220 @@ const Storage = {
     triggerImport: function() {
         const input = this.initImportInput();
         input.click();
+    },
+
+    // ============================================================================
+    // SYNC FROM GOOGLE SHEETS
+    // ============================================================================
+
+    // Sheet export URL — change this if the source sheet changes
+    SYNC_URL: 'https://docs.google.com/spreadsheets/d/17w-BFrDu60z3PpXIe0JqjMFEU1yUQmMeVlLO64742OA/export?format=csv&gid=0',
+    LAST_SYNC_KEY: 'hartaGonoGini_lastSync',
+
+    // Fetch sheet and parse into app's internal format
+    syncFromUrl: async function(url) {
+        const target = url || this.SYNC_URL;
+        const response = await fetch(target, { redirect: 'follow' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const csv = await response.text();
+        return this.parseSyncCSV(csv);
+    },
+
+    // Parse the Google Sheet CSV format
+    // Expected columns: ID,Tanggal,Deskripsi,Kategori,Pembayar,Total,Status,,<Person1>,<Person2>,...
+    // First row(s) without ID are treated as summary rows and skipped.
+    parseSyncCSV: function(csv) {
+        const lines = csv.split(/\r?\n/).filter(l => l.trim());
+        if (lines.length < 2) {
+            return { transactions: [], people: [], nextId: 1 };
+        }
+
+        // Find header row (first line whose first cell is "ID")
+        let headerIdx = -1;
+        for (let i = 0; i < lines.length; i++) {
+            const firstCell = (this.parseCSVLine(lines[i])[0] || '').trim();
+            if (firstCell.toLowerCase() === 'id') {
+                headerIdx = i;
+                break;
+            }
+        }
+        if (headerIdx < 0) throw new Error('Header "ID,Tanggal,..." tidak ditemukan');
+
+        const headers = this.parseCSVLine(lines[headerIdx]).map(h => h.trim());
+
+        const findIdx = (name) => headers.findIndex(h => h.toLowerCase() === name.toLowerCase());
+        const dateIdx = findIdx('Tanggal');
+        const descIdx = findIdx('Deskripsi');
+        const catIdx = findIdx('Kategori');
+        const payerIdx = findIdx('Pembayar');
+        const totalIdx = findIdx('Total');
+        const statusIdx = findIdx('Status');
+
+        // Person columns: everything after Status, skipping empty header columns
+        let peopleStartIdx = statusIdx >= 0 ? statusIdx + 1 : headers.length;
+        while (peopleStartIdx < headers.length && headers[peopleStartIdx] === '') {
+            peopleStartIdx++;
+        }
+        const personNames = headers.slice(peopleStartIdx).filter(h => h);
+        const personKeys = personNames.map(n => this.personKeyFromName(n));
+
+        // Derive people list (dedupe by key — sheet may list same name twice)
+        const seen = new Set();
+        const people = [];
+        for (let i = 0; i < personNames.length; i++) {
+            if (!seen.has(personKeys[i])) {
+                seen.add(personKeys[i]);
+                people.push({ key: personKeys[i], name: personNames[i] });
+            }
+        }
+
+        // Parse data rows
+        const transactions = [];
+        let nextId = 1;
+
+        for (let i = headerIdx + 1; i < lines.length; i++) {
+            const values = this.parseCSVLine(lines[i]);
+            if (values.length < 5) continue;
+
+            const idRaw = (values[0] || '').trim();
+            if (!/^\d+$/.test(idRaw)) continue; // skip summary / non-data rows
+
+            const id = parseInt(idRaw, 10);
+            const date = this.parseSyncDate((values[dateIdx] || '').trim()) || new Date().toISOString().split('T')[0];
+            const description = ((values[descIdx] || '').trim()) || 'Imported';
+            const category = ((values[catIdx] || '').trim()) || 'lainnya';
+            const payerName = (values[payerIdx] || '').trim();
+            const payerKey = this.personKeyFromName(payerName);
+            const totalAmount = this.parseSyncAmount(values[totalIdx] || '');
+            const status = ((values[statusIdx] || '').trim()).toLowerCase();
+
+            // Build split map from person columns
+            const split = {};
+            const splitStatus = {};
+            for (let p = 0; p < personNames.length; p++) {
+                const colIdx = peopleStartIdx + p;
+                if (colIdx >= values.length) continue;
+                const amt = this.parseSyncAmount(values[colIdx]);
+                if (amt > 0) {
+                    split[personKeys[p]] = { amount: amt, items: [] };
+                    if (status === 'selesai' || status === 'settled') {
+                        splitStatus[personKeys[p]] = 'paid';
+                    }
+                }
+            }
+
+            transactions.push({
+                id,
+                date,
+                description,
+                category,
+                payer: payerKey,
+                totalAmount,
+                split,
+                extraCosts: null,
+                discounts: null,
+                splitStatus,
+                createdAt: new Date().toISOString()
+            });
+
+            if (id >= nextId) nextId = id + 1;
+        }
+
+        return { transactions, people, nextId };
+    },
+
+    personKeyFromName: function(name) {
+        if (!name) return '';
+        return String(name).toLowerCase().replace(/\s+/g, '');
+    },
+
+    // Parse "10 May 26" → "2026-05-10"
+    parseSyncDate: function(str) {
+        if (!str) return null;
+        str = str.trim();
+        // Already ISO
+        if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.split('T')[0];
+        // DD MMM YY(YY) — English + Indonesian month names
+        const parts = str.split(/\s+/);
+        if (parts.length !== 3) return null;
+        const day = parseInt(parts[0], 10);
+        const monthLower = parts[1].toLowerCase().substring(0, 3);
+        const yearRaw = parseInt(parts[2], 10);
+        const monthMap = {
+            jan: 1, feb: 2, mar: 3, apr: 4, mei: 5, may: 5,
+            jun: 6, jul: 7, agu: 8, aug: 8, sep: 9, okt: 10, oct: 10,
+            nov: 11, des: 12, dec: 12
+        };
+        const month = monthMap[monthLower];
+        if (!month || isNaN(day)) return null;
+        const fullYear = yearRaw < 100 ? 2000 + yearRaw : yearRaw;
+        return `${fullYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    },
+
+    // Parse "Rp 240,700" → 240700 (returns 0 for empty/null)
+    parseSyncAmount: function(str) {
+        if (str === null || str === undefined) return 0;
+        const cleaned = String(str).replace(/[^0-9]/g, '');
+        if (!cleaned) return 0;
+        return parseInt(cleaned, 10) || 0;
+    },
+
+    // Apply synced data to localStorage (merge or replace)
+    applySync: function(syncData, mode) {
+        const newTransactions = syncData.transactions || [];
+        const newPeople = syncData.people || [];
+        const newNextId = syncData.nextId || 1;
+
+        const existingTransactions = this.get(this.KEYS.TRANSACTIONS) || [];
+        const existingPeople = this.get(this.KEYS.PEOPLE) || [];
+        const existingNextId = this.get(this.KEYS.NEXT_ID) || 1;
+
+        // Merge people by key — existing wins on collision to preserve manual edits
+        const peopleMap = {};
+        existingPeople.forEach(p => { peopleMap[p.key] = p; });
+        newPeople.forEach(p => {
+            if (!peopleMap[p.key]) peopleMap[p.key] = p;
+        });
+        const mergedPeople = Object.values(peopleMap);
+
+        let finalTransactions;
+        let addedCount;
+        if (mode === 'replace') {
+            finalTransactions = newTransactions;
+            addedCount = newTransactions.length;
+        } else {
+            // Merge by ID — skip rows that already exist
+            const existingIds = new Set(existingTransactions.map(t => t.id));
+            const toAdd = newTransactions.filter(t => !existingIds.has(t.id));
+            finalTransactions = [...existingTransactions, ...toAdd];
+            addedCount = toAdd.length;
+        }
+
+        const finalNextId = Math.max(existingNextId, newNextId);
+
+        this.set(this.KEYS.TRANSACTIONS, finalTransactions);
+        this.set(this.KEYS.PEOPLE, mergedPeople);
+        this.set(this.KEYS.NEXT_ID, finalNextId);
+
+        try {
+            localStorage.setItem(this.LAST_SYNC_KEY, new Date().toISOString());
+        } catch (e) { /* ignore */ }
+
+        return {
+            added: addedCount,
+            total: finalTransactions.length,
+            people: mergedPeople.length,
+            skipped: newTransactions.length - addedCount,
+            mode
+        };
+    },
+
+    getLastSync: function() {
+        try {
+            return localStorage.getItem(this.LAST_SYNC_KEY);
+        } catch (e) {
+            return null;
+        }
     }
 };
 
