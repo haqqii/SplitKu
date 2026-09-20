@@ -2107,8 +2107,10 @@ const AUTO_SYNC_MIN_INTERVAL_MS = 30_000; // 30s — skip focus-sync if just syn
 
 // Actual sync runner — used by auto-sync, button click, and Enter key
 // options.silent = true hides toasts (used for background sync)
+// options.deleteMissing = true removes local rows whose IDs are absent from sheet
 function runSync(exportUrl, options = {}) {
     const silent = options.silent === true;
+    const deleteMissing = options.deleteMissing === true;
     if (_syncInProgress) return;
     _syncInProgress = true;
 
@@ -2182,7 +2184,7 @@ function tryAutoSync() {
     const exportUrl = Storage.toCsvExportUrl(rawUrl);
     if (!exportUrl) return false;
 
-    runSync(exportUrl, { silent: true });
+    runSync(exportUrl, { silent: true, deleteMissing: true });
     return true;
 }
 
