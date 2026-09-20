@@ -234,7 +234,16 @@ function renderPeopleManage() {
     let html = '';
     for (let i = 0; i < people.length; i++) {
         const person = people[i];
-        const removeBtn = '<button data-action="delete-person" data-key="' + escapeHtml(person.key) + '" style="padding: 8px 12px; background: var(--danger); color: white; border: none; border-radius: 6px; cursor: pointer;">Hapus</button>';
+        const isInUse = isPersonInUse(person.key);
+        const removeBtnStyle = isInUse
+            ? 'padding: 8px 12px; background: #f3f4f6; color: #9ca3af; border: none; border-radius: 6px; cursor: not-allowed;'
+            : 'padding: 8px 12px; background: var(--danger); color: white; border: none; border-radius: 6px; cursor: pointer;';
+        const tooltip = isInUse
+            ? ' title="' + escapeHtml('Orang ini dipakai di transaksi. Edit/hapus transaksi yang referensikan dia dulu.') + '"'
+            : '';
+        const removeBtn = '<button data-action="delete-person" data-key="' + escapeHtml(person.key) + '"' +
+            (isInUse ? ' disabled' + tooltip : '') +
+            ' style="' + removeBtnStyle + '">Hapus</button>';
         html += '<div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">' +
             '<input type="text" value="' + escapeHtml(person.name) + '" data-action="update-person" data-key="' + escapeHtml(person.key) + '"' +
             ' style="flex: 1; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px;">' +
@@ -274,6 +283,17 @@ function updatePersonName(key, newName) {
         renderFormPeople();
         refreshAll();
     }
+}
+
+// Check if a person (by key) appears in any transaction
+// either as payer or as a split participant
+function isPersonInUse(key) {
+    const k = (key || '').toLowerCase();
+    if (!k) return false;
+    return transactions.some(t =>
+        (t.payer && t.payer.toLowerCase() === k) ||
+        (t.split && Object.keys(t.split).some(sk => sk.toLowerCase() === k))
+    );
 }
 
 function removePerson(key) {
