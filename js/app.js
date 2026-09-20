@@ -2082,6 +2082,9 @@ function confirmSync() {
 function closeSyncModeModal() {
     document.getElementById('syncModeModal').classList.remove('show');
     _pendingSyncUrl = '';
+    // Reset the delete-missing toggle so it doesn't carry over to next sync
+    const cb = document.getElementById('deleteMissingToggle');
+    if (cb) cb.checked = false;
 }
 
 // mode: 'once' = sync one time, 'auto' = sync + enable auto-sync for future
@@ -2097,7 +2100,8 @@ function confirmSyncMode(mode) {
         if (cb) cb.checked = true;
     }
 
-    runSync(url);
+    const deleteMissing = document.getElementById('deleteMissingToggle')?.checked === true;
+    runSync(url, { deleteMissing });
 }
 
 // Track last successful sync time (for focus-sync debouncing)
@@ -2128,7 +2132,7 @@ function runSync(exportUrl, options = {}) {
         })
         .then(csv => {
             const syncData = Storage.parseSyncCSV(csv);
-            const result = Storage.applySync(syncData, 'merge');
+            const result = Storage.applySync(syncData, 'merge', { deleteMissing });
             _lastSyncCompletedAt = Date.now();
             hideLoadingToast();
             _syncInProgress = false;
@@ -2147,10 +2151,12 @@ function runSync(exportUrl, options = {}) {
             }
 
             if (!silent) {
-                showToast(
-                    `Sinkron selesai: ${result.added} baru${result.skipped > 0 ? `, ${result.skipped} dilewati` : ''}, ` +
-                    `total ${result.total} transaksi`
-                );
+                const parts = [];
+                if (result.added > 0) parts.push(`${result.added} baru`);
+                if (result.skipped > 0) parts.push(`${result.skipped} dilewati`);
+                if (result.removed > 0) parts.push(`${result.removed} dihapus`);
+                const summary = parts.length > 0 ? parts.join(', ') : 'tidak ada perubahan';
+                showToast(`Sinkron selesai: ${summary}, total ${result.total} transaksi`);
             }
         })
         .catch(err => {

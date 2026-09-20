@@ -429,7 +429,7 @@
             <p style="color: #6b7280; font-size: 0.85rem; margin-bottom: 16px; line-height: 1.5;">
                 Sync sekarang bisa dilakukan satu kali, atau kamu bisa aktifkan auto-sync supaya data ter-update otomatis setiap buka / balik ke tab ini.
             </p>
-            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
                 <button id="syncModeOneShot" onclick="confirmSyncMode('once')"
                         style="padding: 14px 16px; border: 2px solid #4f46e5; background: #eef2ff; border-radius: 10px; cursor: pointer; text-align: left; font-family: inherit;">
                     <div style="font-weight: 600; color: #1f2937; margin-bottom: 2px; font-size: 0.95rem;">⏱️ Sinkron Sekali</div>
@@ -440,6 +440,16 @@
                     <div style="font-weight: 600; color: #1f2937; margin-bottom: 2px; font-size: 0.95rem;">🔄 Sinkron + Aktifkan Auto-sync</div>
                     <div style="font-size: 0.8rem; color: #6b7280;">Sync sekarang dan auto-sync aktif untuk buka &amp; balik tab.</div>
                 </button>
+            </div>
+
+            <div style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: #fef3c7; border-radius: 8px; margin-bottom: 16px;">
+                <input type="checkbox" id="deleteMissingToggle" style="margin: 2px 0 0; cursor: pointer;">
+                <label for="deleteMissingToggle" style="font-size: 0.82rem; color: #78350f; cursor: pointer; line-height: 1.4;">
+                    <strong>🗑️ Hapus data lokal yang gak ada di sheet</strong>
+                    <div style="font-size: 0.75rem; color: #92400e; margin-top: 2px;">
+                        Kalo ada row di app yang gak ada di sheet, ikut terhapus. Hanya aktif untuk sync ini.
+                    </div>
+                </label>
             </div>
             <button onclick="closeSyncModeModal()" style="background: transparent; color: #6b7280; border: none; padding: 8px 16px; cursor: pointer; font-size: 0.85rem;">Batal</button>
         </div>

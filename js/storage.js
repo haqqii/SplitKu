@@ -1098,7 +1098,8 @@ const Storage = {
     },
 
     // Apply synced data to localStorage (merge or replace)
-    applySync: function(syncData, mode) {
+    applySync: function(syncData, mode, options = {}) {
+        const deleteMissing = options.deleteMissing === true;
         const newTransactions = syncData.transactions || [];
         const newPeople = syncData.people || [];
         const newNextId = syncData.nextId || 1;
@@ -1117,15 +1118,24 @@ const Storage = {
 
         let finalTransactions;
         let addedCount;
+        let removedCount = 0;
         if (mode === 'replace') {
             finalTransactions = newTransactions;
             addedCount = newTransactions.length;
         } else {
-            // Merge by ID — skip rows that already exist
+            // Merge by ID — add rows that don't exist locally
             const existingIds = new Set(existingTransactions.map(t => t.id));
             const toAdd = newTransactions.filter(t => !existingIds.has(t.id));
             finalTransactions = [...existingTransactions, ...toAdd];
             addedCount = toAdd.length;
+
+            // Optional: remove local rows whose IDs aren't in the synced sheet
+            if (deleteMissing) {
+                const sheetIds = new Set(newTransactions.map(t => t.id));
+                const before = finalTransactions.length;
+                finalTransactions = finalTransactions.filter(t => sheetIds.has(t.id));
+                removedCount = before - finalTransactions.length;
+            }
         }
 
         const finalNextId = Math.max(existingNextId, newNextId);
@@ -1143,7 +1153,9 @@ const Storage = {
             total: finalTransactions.length,
             people: mergedPeople.length,
             skipped: newTransactions.length - addedCount,
-            mode
+            removed: removedCount,
+            mode,
+            deleteMissing
         };
     },
 
