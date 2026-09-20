@@ -316,20 +316,33 @@ const Charts = {
         if (!container) return;
 
         const maxItemsPerRow = options.perRow || 3;
-        let html = '<div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;">';
+        container.replaceChildren();
+
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;';
 
         items.forEach(item => {
-            html += `
-                <div style="display: flex; align-items: center; gap: 6px; min-width: 100px;">
-                    <div style="width: 12px; height: 12px; border-radius: 3px; background: ${item.color};"></div>
-                    <span style="font-size: 0.85rem; color: #6b7280;">${item.label}</span>
-                    <span style="font-size: 0.8rem; color: #374151; font-weight: 600;">${this.formatChartCurrency(item.value)}</span>
-                </div>
-            `;
+            const row = document.createElement('div');
+            row.style.cssText = 'display: flex; align-items: center; gap: 6px; min-width: 100px;';
+
+            const swatch = document.createElement('div');
+            swatch.style.cssText = `width: 12px; height: 12px; border-radius: 3px; background: ${item.color};`;
+            row.appendChild(swatch);
+
+            const label = document.createElement('span');
+            label.style.cssText = 'font-size: 0.85rem; color: #6b7280;';
+            label.textContent = item.label;
+            row.appendChild(label);
+
+            const value = document.createElement('span');
+            value.style.cssText = 'font-size: 0.8rem; color: #374151; font-weight: 600;';
+            value.textContent = this.formatChartCurrency(item.value);
+            row.appendChild(value);
+
+            wrapper.appendChild(row);
         });
 
-        html += '</div>';
-        container.innerHTML = html;
+        container.appendChild(wrapper);
     }
 };
 

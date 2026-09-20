@@ -48,14 +48,14 @@ function formatCurrency(amount) {
 
 function formatIndonesianDate(dateStr) {
     if (!dateStr) return '-';
-    var days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', "Jum'at", 'Sabtu'];
-    var months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    var date = new Date(dateStr);
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', "Jum'at", 'Sabtu'];
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const date = new Date(dateStr);
     if (isNaN(date.getTime())) return dateStr;
-    var dayName = days[date.getDay()];
-    var day = date.getDate().toString().padStart(2, '0');
-    var month = months[date.getMonth()];
-    var year = date.getFullYear();
+    const dayName = days[date.getDay()];
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
     return dayName + ', ' + day + ' ' + month + ' ' + year;
 }
 
@@ -80,6 +80,9 @@ function debugData() {
 function loadFromStorage() {
     // Use Storage module if available, else fallback
     if (window.Storage) {
+        // Migrate stored data to current schema before reading
+        Storage.migrate();
+
         const savedTransactions = Storage.get(Storage.KEYS.TRANSACTIONS);
         const savedNextId = Storage.get(Storage.KEYS.NEXT_ID);
         const savedPeople = Storage.get(Storage.KEYS.PEOPLE);
@@ -101,13 +104,38 @@ function loadFromStorage() {
 
 function saveToStorage() {
     if (window.Storage) {
-        Storage.set(Storage.KEYS.TRANSACTIONS, transactions);
-        Storage.set(Storage.KEYS.NEXT_ID, nextId);
-        Storage.set(Storage.KEYS.PEOPLE, people);
+        const ok1 = Storage.set(Storage.KEYS.TRANSACTIONS, transactions);
+        const ok2 = Storage.set(Storage.KEYS.NEXT_ID, nextId);
+        const ok3 = Storage.set(Storage.KEYS.PEOPLE, people);
+        if (!ok1 || !ok2 || !ok3) {
+            handleQuotaExceeded();
+        }
     } else {
-        localStorage.setItem('hartaGonoGini_transactions', JSON.stringify(transactions));
-        localStorage.setItem('hartaGonoGini_nextId', nextId.toString());
-        localStorage.setItem('hartaGonoGini_people', JSON.stringify(people));
+        try {
+            localStorage.setItem('hartaGonoGini_transactions', JSON.stringify(transactions));
+            localStorage.setItem('hartaGonoGini_nextId', nextId.toString());
+            localStorage.setItem('hartaGonoGini_people', JSON.stringify(people));
+        } catch (e) {
+            if (e.name === 'QuotaExceededError' || (e.code && e.code === 22)) {
+                handleQuotaExceeded();
+            } else {
+                throw e;
+            }
+        }
+    }
+}
+
+function handleQuotaExceeded() {
+    if (typeof showToast === 'function') {
+        showToast('⚠️ Penyimpanan penuh — data di-export ke file');
+    }
+    // Auto-export to JSON as fallback so user doesn't lose data
+    if (window.Storage && typeof Storage.exportJSON === 'function') {
+        try {
+            Storage.exportJSON();
+        } catch (e) {
+            console.error('Auto-export failed:', e);
+        }
     }
 }
 
@@ -207,16 +235,25 @@ function renderPeopleManage() {
     for (let i = 0; i < people.length; i++) {
         const person = people[i];
         const removeBtn = people.length > 1
-            ? '<button onclick="showDeletePersonModal(\'' + person.key + '\')" style="padding: 8px 12px; background: var(--danger); color: white; border: none; border-radius: 6px; cursor: pointer;">Hapus</button>'
+            ? '<button data-action="delete-person" data-key="' + escapeHtml(person.key) + '" style="padding: 8px 12px; background: var(--danger); color: white; border: none; border-radius: 6px; cursor: pointer;">Hapus</button>'
             : '';
         html += '<div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">' +
-            '<input type="text" value="' + escapeHtml(person.name) + '" onchange="updatePersonName(\'' + person.key + '\', this.value)"' +
+            '<input type="text" value="' + escapeHtml(person.name) + '" data-action="update-person" data-key="' + escapeHtml(person.key) + '"' +
             ' style="flex: 1; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px;">' +
             removeBtn +
             '</div>';
     }
 
     container.innerHTML = html;
+
+    // Wire up handlers via dataset (safe — values flow through JS, not attribute parsing)
+    container.querySelectorAll('[data-action="delete-person"]').forEach(btn => {
+        btn.addEventListener('click', () => showDeletePersonModal(btn.dataset.key));
+    });
+    container.querySelectorAll('[data-action="update-person"]').forEach(input => {
+        input.addEventListener('change', () => updatePersonName(input.dataset.key, input.value));
+    });
+
     renderFormPeople();
 }
 
@@ -246,6 +283,15 @@ function removePerson(key) {
         showAlert('Minimal harus ada 1 orang');
         return;
     }
+
+    // Block deletion if person appears in any transaction
+    const inPayer = transactions.some(t => t.payer && t.payer.toLowerCase() === key.toLowerCase());
+    const inSplit = transactions.some(t => t.split && Object.keys(t.split).some(k => k.toLowerCase() === key.toLowerCase()));
+    if (inPayer || inSplit) {
+        showAlert('Tidak dapat menghapus orang yang masih terlibat dalam transaksi. Hapus atau edit transaksi tersebut terlebih dahulu.');
+        return;
+    }
+
     if (confirm('Hapus orang ini? Data transaksi terkait mungkin terpengaruh.')) {
         people = people.filter(p => p.key !== key);
         saveToStorage();
@@ -349,6 +395,16 @@ function confirmDeletePerson() {
     if (!personToDelete) return;
 
     const key = personToDelete;
+
+    // Block deletion if person appears in any transaction
+    const inPayer = transactions.some(t => t.payer && t.payer.toLowerCase() === key.toLowerCase());
+    const inSplit = transactions.some(t => t.split && Object.keys(t.split).some(k => k.toLowerCase() === key.toLowerCase()));
+    if (inPayer || inSplit) {
+        closeDeletePersonModal();
+        showAlert('Tidak dapat menghapus orang yang masih terlibat dalam transaksi. Hapus atau edit transaksi tersebut terlebih dahulu.');
+        return;
+    }
+
     closeDeletePersonModal();
 
     people = people.filter(p => p.key !== key);
@@ -432,9 +488,10 @@ function calculateBalances() {
 
     transactions.forEach(t => {
         const splitStatus = t.splitStatus || {};
+        const payerLower = t.payer ? t.payer.toLowerCase() : '';
         Object.entries(t.split || {}).forEach(([person, data]) => {
             const amount = typeof data === 'number' ? data : data.amount;
-            if (person === t.payer) return;
+            if (person.toLowerCase() === payerLower) return;
             if (splitStatus[person] !== 'paid') {
                 balances[person] -= amount;
                 balances[t.payer] += amount;
@@ -460,7 +517,7 @@ function calculateSettlements() {
             if (amount > 0) {
                 // Normalize keys to lowercase for consistent matching
                 const fromKey = person.toLowerCase();
-                const toKey = t.payer.toLowerCase();
+                const toKey = t.payer ? t.payer.toLowerCase() : '';
                 const key = `${fromKey}-${toKey}`;
 
                 if (!settlementMap[key]) {
@@ -515,57 +572,23 @@ function calculateSettlements() {
     return finalSettlements;
 }
 
-// Calculate net settlements (directional, after netting bidirectional payments)
-function calculateNetSettlements() {
-    // Build directional payment map
-    // Key format: "smallerKey-largerKey" to identify pairs
-    const paymentPairs = {};
-
-    transactions.forEach(t => {
-        const splitStatus = t.splitStatus || {};
-        Object.entries(t.split || {}).forEach(([person, data]) => {
-            if (person === t.payer) return;
-            if (splitStatus[person] === 'paid') return;
-
-            const amount = typeof data === 'number' ? data : data.amount;
-            if (amount > 0) {
-                // Create pair key (alphabetically sorted)
-                const keys = [person, t.payer].sort();
-                const pairKey = keys.join('-');
-
-                if (!paymentPairs[pairKey]) {
-                    paymentPairs[pairKey] = { a: keys[0], b: keys[1], aToB: 0, bToA: 0 };
-                }
-
-                // person pays t.payer
-                if (person === keys[0]) {
-                    paymentPairs[pairKey].aToB += amount;
-                } else {
-                    paymentPairs[pairKey].bToA += amount;
-                }
-            }
-        });
-    });
-
-    // Calculate net settlements
-    const settlements = [];
-    Object.values(paymentPairs).forEach(pair => {
-        const net = pair.aToB - pair.bToA;
-        if (net > 0) {
-            settlements.push({ from: pair.a, to: pair.b, amount: net, items: [] });
-        } else if (net < 0) {
-            settlements.push({ from: pair.b, to: pair.a, amount: Math.abs(net), items: [] });
-        }
-    });
-
-    return settlements;
-}
-
 // ============================================================================
 // DASHBOARD
 // ============================================================================
 
 let dashboardVisible = true;
+
+// Memoized settlements — invalidated at start of each refreshAll()
+let _settlementsCache = null;
+function getSettlements() {
+    if (_settlementsCache === null) {
+        _settlementsCache = calculateSettlements();
+    }
+    return _settlementsCache;
+}
+function resetSettlementsCache() {
+    _settlementsCache = null;
+}
 
 function toggleDashboard() {
     const content = document.getElementById('dashboardContent');
@@ -598,7 +621,7 @@ function renderDashboard() {
     });
 
     // Pending amount
-    const settlements = calculateSettlements();
+    const settlements = getSettlements();
     let pendingAmount = 0;
     settlements.forEach(s => pendingAmount += s.amount);
 
@@ -750,7 +773,7 @@ function toggleSettlements() {
 }
 
 function renderSettlements() {
-    const settlements = calculateSettlements();
+    const settlements = getSettlements();
     const container = document.getElementById('settlementList');
     if (!container) return;
 
@@ -773,7 +796,7 @@ function renderSettlements() {
                 </span>
                 <span>
                     <span class="amount">${formatCurrency(s.amount)}</span>
-                    <button class="btn-settle" onclick="settleBySettlement('${s.from}', '${s.to}', ${s.amount})">Selesai</button>
+                    <button class="btn-settle" data-action="settle" data-from="${escapeHtml(s.from)}" data-to="${escapeHtml(s.to)}" data-amount="${s.amount}">Selesai</button>
                 </span>
             </div>
             ${s.items.length > 0 ? `
@@ -788,6 +811,11 @@ function renderSettlements() {
             ` : ''}
         </li>
     `).join('');
+
+    // Wire up settle handlers via dataset (safe — values flow through JS, not attribute parsing)
+    container.querySelectorAll('[data-action="settle"]').forEach(btn => {
+        btn.addEventListener('click', () => settleBySettlement(btn.dataset.from, btn.dataset.to, parseFloat(btn.dataset.amount)));
+    });
 
     // Add "Show more/less" button if there are more settlements
     if (settlements.length > SETTLEMENTS_INITIAL_COUNT) {
@@ -816,6 +844,16 @@ function renderSettlements() {
 // ============================================================================
 // TRANSACTION RENDERING
 // ============================================================================
+
+// Debounce wrapper to avoid re-rendering on every keystroke
+let _renderTransactionsTimer = null;
+function debouncedRenderTransactions() {
+    if (_renderTransactionsTimer) clearTimeout(_renderTransactionsTimer);
+    _renderTransactionsTimer = setTimeout(() => {
+        _renderTransactionsTimer = null;
+        renderTransactions();
+    }, 150);
+}
 
 function renderTransactions() {
     const tbody = document.getElementById('transactionsBody');
@@ -919,6 +957,11 @@ function renderTransactions() {
         `;
     }).join('');
 
+    // Wire up settle-person buttons (safe — values flow through JS, not attribute parsing)
+    tbody.querySelectorAll('[data-action="settle-person"]').forEach(btn => {
+        btn.addEventListener('click', () => settlePerson(parseInt(btn.dataset.txId, 10), btn.dataset.person));
+    });
+
     renderPagination('transactionsPagination', totalPages, currentPage, (page) => {
         currentPage = page;
         renderTransactions();
@@ -960,7 +1003,7 @@ function renderTransactionDetails(t, splitStatus) {
                             <div class="split-card-footer">
                                 ${isPaid ?
                                     '<span class="status-badge status-paid">✓ Lunas</span>' :
-                                    `<button class="btn-pay" onclick="settlePerson(${t.id}, '${person}')">💰 Bayar</button>`
+                                    `<button class="btn-pay" data-action="settle-person" data-tx-id="${t.id}" data-person="${escapeHtml(person)}">💰 Bayar</button>`
                                 }
                             </div>
                         </div>
@@ -1144,8 +1187,22 @@ function settleBySettlement(from, to, amount) {
     const fromName = getPersonName(from);
     const toName = getPersonName(to);
 
-    document.getElementById('confirmSettleMessage').innerHTML =
-        `<strong>${fromName}</strong> sudah bayar ke <strong>${toName}</strong><br><span style="font-size: 1.3rem; color: #10b981; font-weight: bold;">Rp ${formatCurrency(amount).replace('Rp ', '')}</span>`;
+    const msg = document.getElementById('confirmSettleMessage');
+    msg.replaceChildren();
+    const strongFrom = document.createElement('strong');
+    strongFrom.textContent = fromName;
+    msg.appendChild(strongFrom);
+    msg.appendChild(document.createTextNode(' sudah bayar ke '));
+    const strongTo = document.createElement('strong');
+    strongTo.textContent = toName;
+    msg.appendChild(strongTo);
+    msg.appendChild(document.createElement('br'));
+    const amountSpan = document.createElement('span');
+    amountSpan.style.fontSize = '1.3rem';
+    amountSpan.style.color = '#10b981';
+    amountSpan.style.fontWeight = 'bold';
+    amountSpan.textContent = `Rp ${formatCurrency(amount).replace('Rp ', '')}`;
+    msg.appendChild(amountSpan);
 
     document.getElementById('confirmSettleModal').classList.add('show');
 }
@@ -1175,9 +1232,19 @@ function confirmSettle() {
             // Find the person in split with case-insensitive match
             const splitPersonKey = Object.keys(t.split).find(key => key.toLowerCase() === fromLower);
             if (splitPersonKey && splitStatus[splitPersonKey] !== 'paid') {
-                if (!t.splitStatus) t.splitStatus = {};
-                t.splitStatus[splitPersonKey] = 'paid';
-                remaining -= (typeof t.split[splitPersonKey] === 'number' ? t.split[splitPersonKey] : t.split[splitPersonKey].amount);
+                const splitAmount = typeof t.split[splitPersonKey] === 'number'
+                    ? t.split[splitPersonKey]
+                    : t.split[splitPersonKey].amount;
+
+                // Only mark as paid if we have enough remaining to fully cover this split
+                if (remaining >= splitAmount) {
+                    if (!t.splitStatus) t.splitStatus = {};
+                    t.splitStatus[splitPersonKey] = 'paid';
+                    remaining -= splitAmount;
+                } else {
+                    // Not enough remaining to cover this split — stop, no partial marking
+                    break;
+                }
             }
         }
     }
@@ -1255,14 +1322,24 @@ function updateSplitAmountInputs() {
                 <div class="items-container" id="items-${person}">
                     <div class="item-row">
                         <input type="text" placeholder="Nama item (opsional)" class="item-name" data-person="${person}">
-                        <input type="number" placeholder="Rp 0" class="item-amount" data-person="${person}" min="0" oninput="calculatePersonTotal('${person}')">
+                        <input type="number" placeholder="Rp 0" class="item-amount" data-person="${escapeHtml(person)}" min="0" data-action="calculate-person-total">
                         <button type="button" class="btn-remove-item" onclick="removeItem(this)" style="display: none;">×</button>
                     </div>
                 </div>
-                <button type="button" class="btn-add-item" onclick="addItem('${person}')">+ Tambah Item</button>
+                <button type="button" class="btn-add-item" data-action="add-item" data-person="${escapeHtml(person)}">+ Tambah Item</button>
             </div>
         `;
     }).join('');
+
+    // Wire up add-item buttons (safe — values flow through JS, not attribute parsing)
+    container.querySelectorAll('[data-action="add-item"]').forEach(btn => {
+        btn.addEventListener('click', () => addItem(btn.dataset.person));
+    });
+
+    // Wire up item-amount inputs (safe — values flow through JS, not attribute parsing)
+    container.querySelectorAll('[data-action="calculate-person-total"]').forEach(input => {
+        input.addEventListener('input', () => calculatePersonTotal(input.dataset.person));
+    });
 
     calculateAutoTotal();
 }
@@ -1274,11 +1351,17 @@ function addItem(person, name = '', amount = '') {
     const row = document.createElement('div');
     row.className = 'item-row';
     row.innerHTML = `
-        <input type="text" placeholder="Nama item (opsional)" class="item-name" data-person="${person}" value="${escapeHtml(name)}">
-        <input type="number" placeholder="Rp 0" class="item-amount" data-person="${person}" min="0" oninput="calculatePersonTotal('${person}')" value="${amount}">
+        <input type="text" placeholder="Nama item (opsional)" class="item-name" data-person="${escapeHtml(person)}" value="${escapeHtml(name)}">
+        <input type="number" placeholder="Rp 0" class="item-amount" data-person="${escapeHtml(person)}" min="0" data-action="calculate-person-total" value="${amount}">
         <button type="button" class="btn-remove-item" onclick="removeItem(this)">×</button>
     `;
     container.appendChild(row);
+
+    // Wire up amount input (safe — value flows through JS, not attribute parsing)
+    const amountInput = row.querySelector('[data-action="calculate-person-total"]');
+    if (amountInput) {
+        amountInput.addEventListener('input', () => calculatePersonTotal(person));
+    }
 
     // Show delete button on first row when there are 2+ rows
     const allRows = container.querySelectorAll('.item-row');
@@ -1460,45 +1543,6 @@ document.getElementById('addTransactionForm').addEventListener('submit', functio
         return;
     }
 
-    const extraCostRows = document.querySelectorAll('.extra-cost-row');
-    const extraCosts = [];
-
-    extraCostRows.forEach(row => {
-        const type = row.querySelector('.extra-cost-type').value;
-        const name = row.querySelector('.extra-cost-name').value;
-        const value = parseInt(row.querySelector('.extra-cost-value').value) || 0;
-
-        if (value > 0) {
-            let calculated = 0;
-            if (type === 'percent') {
-                calculated = Math.round(totalAmount * value / 100);
-            } else {
-                calculated = value;
-            }
-
-            extraCosts.push({
-                type: type,
-                name: name || 'Biaya Tambahan',
-                value: value,
-                calculated: calculated
-            });
-
-            Object.keys(split).forEach(person => {
-                const personSubtotal = split[person].amount;
-                const ratio = totalAmount > 0 ? personSubtotal / totalAmount : 0;
-                const personExtraCost = Math.round(calculated * ratio);
-                split[person].amount += personExtraCost;
-                split[person].items.push({
-                    name: name || 'Biaya Tambahan',
-                    amount: personExtraCost,
-                    isExtraCost: true
-                });
-            });
-
-            totalAmount += calculated;
-        }
-    });
-
     const discountRows = document.querySelectorAll('.discount-row');
     const discounts = [];
 
@@ -1535,6 +1579,45 @@ document.getElementById('addTransactionForm').addEventListener('submit', functio
             });
 
             totalAmount -= calculated;
+        }
+    });
+
+    const extraCostRows = document.querySelectorAll('.extra-cost-row');
+    const extraCosts = [];
+
+    extraCostRows.forEach(row => {
+        const type = row.querySelector('.extra-cost-type').value;
+        const name = row.querySelector('.extra-cost-name').value;
+        const value = parseInt(row.querySelector('.extra-cost-value').value) || 0;
+
+        if (value > 0) {
+            let calculated = 0;
+            if (type === 'percent') {
+                calculated = Math.round(totalAmount * value / 100);
+            } else {
+                calculated = value;
+            }
+
+            extraCosts.push({
+                type: type,
+                name: name || 'Biaya Tambahan',
+                value: value,
+                calculated: calculated
+            });
+
+            Object.keys(split).forEach(person => {
+                const personSubtotal = split[person].amount;
+                const ratio = totalAmount > 0 ? personSubtotal / totalAmount : 0;
+                const personExtraCost = Math.round(calculated * ratio);
+                split[person].amount += personExtraCost;
+                split[person].items.push({
+                    name: name || 'Biaya Tambahan',
+                    amount: personExtraCost,
+                    isExtraCost: true
+                });
+            });
+
+            totalAmount += calculated;
         }
     });
 
@@ -1827,20 +1910,20 @@ function confirmImport() {
         return;
     }
 
-    // Store file reference before closing modal (which clears it)
     const fileToImport = pendingImportFile;
     console.log('File to import:', fileToImport ? fileToImport.name : 'null');
 
     closeImportConfirmModal();
+    showLoadingToast('Memproses ' + (fileToImport.name || 'file') + '...');
 
-    // Process the file with selected mode
     window.pendingImportMode = selectedImportMode;
     console.log('Import mode:', selectedImportMode);
 
-    // Process import
     console.log('Calling Storage.processImportFile');
-    Storage.processImportFile(fileToImport);
-    console.log('Storage.processImportFile returned');
+    Storage.processImportFile(fileToImport).finally(() => {
+        hideLoadingToast();
+    });
+    console.log('Storage.processImportFile dispatched');
 }
 
 function showToast(message) {
@@ -1851,6 +1934,24 @@ function showToast(message) {
         setTimeout(() => {
             toast.classList.remove('show');
         }, 3000);
+    }
+}
+
+// Persistent loading toast — caller is responsible for hiding it
+function showLoadingToast(message) {
+    const toast = document.getElementById('toast');
+    if (toast) {
+        toast.textContent = '⏳ ' + message;
+        toast.classList.add('show');
+        toast.classList.add('loading');
+    }
+}
+
+function hideLoadingToast() {
+    const toast = document.getElementById('toast');
+    if (toast) {
+        toast.classList.remove('show');
+        toast.classList.remove('loading');
     }
 }
 
@@ -1974,13 +2075,48 @@ function cancelEdit() {
 
 function resetAllData() {
     document.getElementById('confirmModal').classList.add('show');
+    // Reset input state when opening
+    setTimeout(() => {
+        const input = document.getElementById('resetConfirmInput');
+        if (input) {
+            input.value = '';
+            toggleResetButton();
+        }
+    }, 0);
 }
 
 function closeConfirmModal() {
     document.getElementById('confirmModal').classList.remove('show');
 }
 
+function toggleResetButton() {
+    const input = document.getElementById('resetConfirmInput');
+    const btn = document.getElementById('resetConfirmBtn');
+    if (!input || !btn) return;
+    const matches = input.value === 'RESET';
+    btn.disabled = !matches;
+    btn.style.opacity = matches ? '1' : '0.5';
+    btn.style.cursor = matches ? 'pointer' : 'not-allowed';
+}
+
+function resetBackupAndClose() {
+    // Export data first, then close modal so user can complete reset if they want
+    if (window.Storage && typeof Storage.exportJSON === 'function') {
+        Storage.exportJSON();
+        showToast('Backup tersimpan. Silakan lanjutkan reset jika perlu.');
+    } else {
+        showAlert('Fitur backup tidak tersedia');
+    }
+}
+
 function confirmReset() {
+    // Defense-in-depth: re-check the typed confirmation
+    const input = document.getElementById('resetConfirmInput');
+    if (!input || input.value !== 'RESET') {
+        showAlert('Ketik RESET untuk konfirmasi');
+        return;
+    }
+
     transactions = [];
     nextId = 1;
     saveToStorage();
@@ -2146,8 +2282,8 @@ function downloadSettlementImage() {
         return;
     }
 
-    // Use calculateSettlements() for consistency with Section "Penyelesaian"
-    const settlements = calculateSettlements();
+    // Use cached settlements for consistency with Section "Penyelesaian"
+    const settlements = getSettlements();
 
     if (settlements.length === 0) {
         showAlert('Tidak ada yang perlu disettle!');
@@ -2461,6 +2597,7 @@ function downloadSettlementImage() {
 // ============================================================================
 
 function refreshAll() {
+    resetSettlementsCache();
     renderDashboard();
     renderSettlements();
     renderTransactions();

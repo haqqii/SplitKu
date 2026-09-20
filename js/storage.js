@@ -14,6 +14,70 @@ const Storage = {
 
     // Current data version
     VERSION: '2.0',
+    VERSION_KEY: 'hartaGonoGini_version',
+
+    // Migrate stored data from older versions to current schema
+    migrate: function() {
+        let stored = null;
+        try {
+            stored = localStorage.getItem(this.VERSION_KEY);
+        } catch (e) {
+            // localStorage unavailable — skip migration
+            return;
+        }
+
+        const currentVersion = this.VERSION;
+        if (stored === currentVersion) return;
+
+        const fromVersion = stored || '1.0-legacy';
+
+        // 1.0 → 2.0: ensure every transaction has splitStatus + lowercased payer/split keys
+        if (fromVersion !== '2.0') {
+            try {
+                const txs = this.get(this.KEYS.TRANSACTIONS) || [];
+                let mutated = false;
+
+                for (const t of txs) {
+                    if (!t.splitStatus || typeof t.splitStatus !== 'object') {
+                        t.splitStatus = {};
+                        mutated = true;
+                    }
+                    if (t.payer && typeof t.payer === 'string') {
+                        const lower = t.payer.toLowerCase();
+                        if (lower !== t.payer) {
+                            t.payer = lower;
+                            mutated = true;
+                        }
+                    }
+                    if (t.split && typeof t.split === 'object') {
+                        const normalized = {};
+                        let splitMutated = false;
+                        for (const k of Object.keys(t.split)) {
+                            const lower = k.toLowerCase();
+                            normalized[lower] = t.split[k];
+                            if (lower !== k) splitMutated = true;
+                        }
+                        if (splitMutated) {
+                            t.split = normalized;
+                            mutated = true;
+                        }
+                    }
+                }
+
+                if (mutated) {
+                    this.set(this.KEYS.TRANSACTIONS, txs);
+                }
+            } catch (e) {
+                console.error('Migration error (1.0 → 2.0):', e);
+            }
+        }
+
+        try {
+            localStorage.setItem(this.VERSION_KEY, currentVersion);
+        } catch (e) {
+            console.error('Failed to persist version key:', e);
+        }
+    },
 
     // Get all data for export
     getExportData: function() {
@@ -337,15 +401,17 @@ const Storage = {
             return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
         }
 
-        // MM/DD/YYYY (US format)
+        // MM/DD/YYYY (US format) — also handles ambiguous DD/MM
         const mmddyyyy = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
         if (mmddyyyy) {
             const [, m, d, y] = mmddyyyy;
-            // Check if month > 12 (would indicate DD/MM format)
+            // m > 12 means first number is clearly a day (DD/MM format)
             if (parseInt(m) > 12) {
                 return `${y}-${d.padStart(2, '0')}-${m.padStart(2, '0')}`;
             }
-            return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+            // Both ≤ 12: default to DD/MM for Indonesian locale
+            // (swap — first number is day, second is month)
+            return `${y}-${d.padStart(2, '0')}-${m.padStart(2, '0')}`;
         }
 
         // Try native Date parsing as fallback
