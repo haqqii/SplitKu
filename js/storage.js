@@ -13,7 +13,7 @@ const Storage = {
     },
 
     // Current data version
-    VERSION: '2.0',
+    VERSION: '2.1',
     VERSION_KEY: 'hartaGonoGini_version',
 
     // Migrate stored data from older versions to current schema
@@ -69,6 +69,26 @@ const Storage = {
                 }
             } catch (e) {
                 console.error('Migration error (1.0 → 2.0):', e);
+            }
+        }
+
+        // 2.0 → 2.1: lowercase t.category so CATEGORY_ICONS/LABELS lookups match
+        // (previously capitalized "Makan" from sheets fell back to "Lainnya" emoji)
+        if (fromVersion !== '2.1') {
+            try {
+                const txs = this.get(this.KEYS.TRANSACTIONS) || [];
+                let mutated = false;
+                for (const t of txs) {
+                    if (t.category && t.category !== t.category.toLowerCase()) {
+                        t.category = t.category.toLowerCase();
+                        mutated = true;
+                    }
+                }
+                if (mutated) {
+                    this.set(this.KEYS.TRANSACTIONS, txs);
+                }
+            } catch (e) {
+                console.error('Migration error (2.0 → 2.1):', e);
             }
         }
 
@@ -347,7 +367,8 @@ const Storage = {
             const dateRaw = (dateIdx >= 0 && values[dateIdx]) ? values[dateIdx].replace(/^"|"$/g, '').trim() : '';
             const date = this.parseDate(dateRaw) || new Date().toISOString().split('T')[0];
             const description = (descIdx >= 0 && values[descIdx]) ? values[descIdx].replace(/^"|"$/g, '').trim() : '';
-            const category = (catIdx >= 0 && values[catIdx]) ? values[catIdx].replace(/^"|"$/g, '').trim() : 'lainnya';
+            const categoryRaw = (catIdx >= 0 && values[catIdx]) ? values[catIdx].replace(/^"|"$/g, '').trim() : '';
+            const category = categoryRaw.toLowerCase() || 'lainnya';
             const payer = (payerIdx >= 0 && values[payerIdx]) ? values[payerIdx].replace(/^"|"$/g, '').trim() : '';
             const payerKey = payer.toLowerCase().replace(/\s+/g, '');
             const totalAmount = (totalIdx >= 0 && values[totalIdx]) ? parseFloat(values[totalIdx].replace(/[^0-9.-]/g, '')) || 0 : 0;
@@ -377,7 +398,7 @@ const Storage = {
         }
 
         return {
-            version: '2.0',
+            version: '2.1',
             transactions: transactions,
             people: null,
             nextId: nextId
@@ -543,7 +564,7 @@ const Storage = {
             }
             const date = this.parseDate(parsedDate) || new Date().toISOString().split('T')[0];
             const description = getVal(descIdx);
-            const category = getVal(catIdx) || 'lainnya';
+            const category = (getVal(catIdx) || '').toLowerCase() || 'lainnya';
             const payer = getVal(payerIdx) || '';
             const payerKey = payer.toLowerCase().replace(/\s+/g, '');
             const totalAmount = parseFloat(getVal(totalIdx).replace(/[^0-9.-]/g, '')) || 0;
@@ -996,7 +1017,7 @@ const Storage = {
             const id = parseInt(idRaw, 10);
             const date = this.parseSyncDate((values[dateIdx] || '').trim()) || '';
             const description = ((values[descIdx] || '').trim()) || 'Imported';
-            const category = ((values[catIdx] || '').trim()) || 'lainnya';
+            const category = ((values[catIdx] || '').trim()).toLowerCase() || 'lainnya';
             const payerName = (values[payerIdx] || '').trim();
             const payerKey = this.personKeyFromName(payerName);
             if (payerKey) addPerson(payerName); // ensure payer is in people list
