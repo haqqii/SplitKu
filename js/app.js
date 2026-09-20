@@ -843,8 +843,8 @@ function renderSettlements() {
                     <span class="settlement-to">${toName}</span>
                 </div>
                 <div class="settlement-action">
-                    <span class="settlement-amount">${formatCurrency(s.amount)}</span>
                     ${s.items.length > 0 ? `<button class="btn-link" data-action="lihat-detail" data-from="${escapeHtml(s.from)}" data-to="${escapeHtml(s.to)}">lihat detail</button>` : ''}
+                    <span class="settlement-amount">${formatCurrency(s.amount)}</span>
                     <button class="btn btn-success" data-action="settle" data-from="${escapeHtml(s.from)}" data-to="${escapeHtml(s.to)}" data-amount="${s.amount}">Selesai</button>
                 </div>
             </div>
