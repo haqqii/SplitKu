@@ -866,27 +866,49 @@ const Storage = {
         return this.parseSyncCSV(csv);
     },
 
-    // Generate a CSV template with the expected schema and a sample row
-    // The user can copy this to their sheet and replace with their data
-    getTemplateCSV: function() {
-        const sample = [
-            'ID,Tanggal,Deskripsi,Kategori,Pembayar,Total,Status,,Qulub,Yohn,Haqqi,Aldo,Acha,Lintang,Mega',
-            '1,10 May 26,Coffee,Makan,Qulub,"Rp 50,000",Selesai,,"Rp 25,000","Rp 25,000",,,,',
-            '2,10 May 26,Lunch,Makan,Yohn,"Rp 80,000",Pending,,"Rp 20,000","Rp 20,000",,"Rp 20,000","Rp 20,000",',
-            ',,,,,,,TOTAL:,"Rp 45,000","Rp 45,000",,"Rp 20,000","Rp 20,000",'
+    // Generate a spreadsheet template with the expected schema and a sample row.
+    // Returns XLSX when SheetJS is available, falls back to CSV otherwise.
+    getTemplateRows: function() {
+        return [
+            ['ID', 'Tanggal', 'Deskripsi', 'Kategori', 'Pembayar', 'Total', 'Status', '', 'Qulub', 'Yohn', 'Haqqi', 'Aldo', 'Acha', 'Lintang', 'Mega'],
+            [1, '10 May 26', 'Coffee', 'Makan', 'Qulub', 'Rp 50,000', 'Selesai', '', 'Rp 25,000', 'Rp 25,000', '', '', '', ''],
+            [2, '10 May 26', 'Lunch', 'Makan', 'Yohn', 'Rp 80,000', 'Pending', '', 'Rp 20,000', 'Rp 20,000', '', 'Rp 20,000', 'Rp 20,000', ''],
+            ['', '', '', '', '', '', '', 'TOTAL:', 'Rp 45,000', 'Rp 45,000', '', 'Rp 20,000', 'Rp 20,000', '']
         ];
-        return sample.join('\n');
+    },
+
+    // CSV fallback (only used if SheetJS isn't loaded)
+    getTemplateCSV: function() {
+        const rows = this.getTemplateRows();
+        return rows.map(row => row.map(cell => {
+            const s = String(cell);
+            return (s.includes(',') || s.includes('"') || s.includes('\n'))
+                ? `"${s.replace(/"/g, '""')}"`
+                : s;
+        }).join(',')).join('\n');
     },
 
     downloadTemplate: function() {
-        const csv = this.getTemplateCSV();
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'harta-gono-gini-template.csv';
-        link.click();
-        URL.revokeObjectURL(url);
+        const rows = this.getTemplateRows();
+
+        if (typeof XLSX !== 'undefined' && XLSX.utils && XLSX.writeFile) {
+            // XLSX path — preferred
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            XLSX.utils.book_append_sheet(wb, ws, 'Template');
+            XLSX.writeFile(wb, 'harta-gono-gini-template.xlsx');
+        } else {
+            // CSV fallback
+            const csv = this.getTemplateCSV();
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'harta-gono-gini-template.csv';
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
         if (typeof showToast === 'function') {
             showToast('Template downloaded');
         }
