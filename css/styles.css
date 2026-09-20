@@ -320,6 +320,31 @@ header .header-titles {
 }
 
 /* ============================================================================
+   RESET MODAL — special layout for typed-confirmation flow
+   ============================================================================ */
+.modal-reset-actions {
+    margin-bottom: var(--space-4);
+    display: flex;
+    justify-content: center;
+}
+
+.modal-reset-prompt {
+    color: var(--gray-700);
+    margin-bottom: var(--space-2);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.modal-reset-input {
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: var(--space-4);
+    width: 100%;
+    max-width: 280px;
+}
+
+/* ============================================================================
    FORM SECTIONS + GRIDS
    ============================================================================ */
 .form-section { margin-bottom: var(--space-5); }

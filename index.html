@@ -297,24 +297,29 @@
     </div>
 
     <!-- Person History Modal -->
-    <div class="modal-overlay" id="personHistoryModal">
-        <div class="modal" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
-            <h3 id="personHistoryTitle" style="margin-bottom: 16px;">📋 Histori - </h3>
-            <div id="personHistoryContent"></div>
-            <div style="margin-top: 20px;">
-                <button onclick="closePersonHistoryModal()" style="background: var(--gray-200); color: var(--gray-700); border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; width: 100%;">Tutup</button>
+    <div id="personHistoryModal" class="modal">
+        <div class="modal-backdrop" onclick="closePersonHistoryModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="personHistoryTitle">📋 Histori</h3>
+                <button onclick="closePersonHistoryModal()" class="modal-close">&times;</button>
             </div>
+            <div id="personHistoryContent" class="modal-body"></div>
         </div>
     </div>
 
     <!-- Budget Modal -->
-    <div class="modal-overlay" id="budgetModal">
-        <div class="modal" style="max-width: 500px;">
-            <h3 style="margin-bottom: 16px;">💰 Atur Budget Bulanan</h3>
-            <div id="budgetFormContent"></div>
-            <div style="margin-top: 20px; display: flex; gap: 12px;">
-                <button onclick="saveBudgets()" style="flex: 1; background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 600;">Simpan</button>
-                <button onclick="closeBudgetModal()" style="flex: 1; background: var(--gray-200); color: var(--gray-700); border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 0.95rem;">Batal</button>
+    <div id="budgetModal" class="modal">
+        <div class="modal-backdrop" onclick="closeBudgetModal()"></div>
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h3>💰 Atur Budget Bulanan</h3>
+                <button onclick="closeBudgetModal()" class="modal-close">&times;</button>
+            </div>
+            <div id="budgetFormContent" class="modal-body"></div>
+            <div class="modal-footer">
+                <button onclick="closeBudgetModal()" class="btn btn-secondary">Batal</button>
+                <button onclick="saveBudgets()" class="btn btn-primary">Simpan</button>
             </div>
         </div>
     </div>
@@ -322,20 +327,18 @@
     <!-- Modal Konfirmasi -->
     <div id="confirmModal" class="modal">
         <div class="modal-backdrop" onclick="closeConfirmModal()"></div>
-        <div class="modal-content" style="text-align: center;">
-            <div style="background: #fee2e2; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
-                <span style="font-size: 28px;">⚠️</span>
+        <div class="modal-content modal-sm">
+            <div class="modal-icon modal-icon-danger">⚠️</div>
+            <h3 class="modal-title">Reset Data?</h3>
+            <p class="modal-desc">Semua transaksi, orang, sync URL, dan pengaturan auto-sync akan dihapus. Tindakan ini tidak bisa dibatalkan.</p>
+            <div class="modal-reset-actions">
+                <button onclick="resetBackupAndClose()" class="btn btn-success">📥 Backup Dulu (Download JSON)</button>
             </div>
-            <h3 style="margin-bottom: 8px;">Reset Data?</h3>
-            <p style="color: var(--gray-500); margin-bottom: 16px;">Semua transaksi, orang, sync URL, dan pengaturan auto-sync akan dihapus. Tindakan ini tidak bisa dibatalkan.</p>
-            <div style="margin-bottom: 16px;">
-                <button onclick="resetBackupAndClose()" style="padding: 10px 16px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500;">📥 Backup Dulu (Download JSON)</button>
-            </div>
-            <p style="color: var(--gray-700); margin-bottom: 8px; font-size: 0.9rem;">Ketik <strong>RESET</strong> untuk konfirmasi:</p>
-            <input type="text" id="resetConfirmInput" placeholder="Ketik RESET" oninput="toggleResetButton()" style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 0.95rem; width: 100%; max-width: 240px; text-align: center; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px;">
-            <div class="modal-footer" style="justify-content: center;">
-                <button onclick="closeConfirmModal()" style="padding: 12px 24px; background: var(--gray-100); color: var(--gray-600); border: none; border-radius: 10px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Batal</button>
-                <button id="resetConfirmBtn" onclick="confirmReset()" disabled style="padding: 12px 24px; background: #ef4444; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 0.95rem; font-weight: 500; opacity: 0.5;">Ya, Reset</button>
+            <p class="modal-reset-prompt">Ketik <strong>RESET</strong> untuk konfirmasi:</p>
+            <input type="text" id="resetConfirmInput" placeholder="Ketik RESET" oninput="toggleResetButton()" class="modal-input modal-reset-input">
+            <div class="modal-footer modal-footer-center">
+                <button onclick="closeConfirmModal()" class="btn btn-secondary">Batal</button>
+                <button id="resetConfirmBtn" onclick="confirmReset()" disabled class="btn btn-danger">Ya, Reset</button>
             </div>
         </div>
     </div>
