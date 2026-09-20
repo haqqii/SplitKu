@@ -551,6 +551,24 @@
         </div>
     </div>
 
+    <!-- Modal: Detail Transaksi -->
+    <div id="transactionDetailModal" class="modal">
+        <div class="modal-backdrop" onclick="closeTransactionDetailModal()"></div>
+        <div class="modal-content" style="max-width: 640px;">
+            <div class="modal-header">
+                <h3 id="transactionDetailTitle">Detail Transaksi</h3>
+                <button onclick="closeTransactionDetailModal()" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="transactionDetailBody" style="text-align: left; max-height: 70vh; overflow-y: auto;">
+                <!-- renderTransactionDetails() output goes here -->
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeTransactionDetailModal()" class="btn btn-secondary">Tutup</button>
+                <button id="transactionDetailEditBtn" class="btn btn-warning">Edit</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast -->
     <div class="toast" id="toast"></div>
 

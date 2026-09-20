@@ -991,12 +991,9 @@ function renderTransactions() {
                 <td class="tx-num">${globalIdx}</td>
                 <td class="tx-date">${formatIndonesianDate(t.date)}</td>
                 <td>
-                    <div class="tx-description" onclick="toggleDetails(${t.id})">
+                    <div class="tx-description" onclick="openTransactionDetail(${t.id})">
                         ${escapeHtml(t.description || '-')}
                         <span class="tx-hint">(klik untuk lihat split)</span>
-                    </div>
-                    <div id="details-${t.id}" class="expanded-details">
-                        ${renderTransactionDetails(t, splitStatus)}
                     </div>
                 </td>
                 <td class="tx-category">
@@ -1241,6 +1238,52 @@ function renderHistory() {
 function toggleDetails(id) {
     const details = document.getElementById(`details-${id}`);
     if (details) details.classList.toggle('show');
+}
+
+let openTransactionDetailId = null;
+
+function openTransactionDetail(id) {
+    const t = transactions.find(tr => tr.id === id);
+    if (!t) return;
+
+    openTransactionDetailId = id;
+
+    const modal = document.getElementById('transactionDetailModal');
+    const body = document.getElementById('transactionDetailBody');
+    const title = document.getElementById('transactionDetailTitle');
+    const editBtn = document.getElementById('transactionDetailEditBtn');
+
+    title.textContent = t.description || 'Detail Transaksi';
+    body.innerHTML = renderTransactionDetails(t, t.splitStatus || {});
+
+    // Wire settle-person buttons inside the modal so they remain functional
+    body.querySelectorAll('[data-action="settle-person"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            settlePerson(parseInt(btn.dataset.txId, 10), btn.dataset.person);
+            // refreshAll() inside settlePerson re-renders the table; refresh modal content too
+            openTransactionDetail(parseInt(btn.dataset.txId, 10));
+        });
+    });
+
+    // Wire download-detail button inside modal (uses t.id)
+    const dlBtn = body.querySelector('.btn-download-detail');
+    if (dlBtn) {
+        dlBtn.onclick = () => downloadImage(id);
+    }
+
+    // Edit button: close modal then trigger edit
+    editBtn.onclick = () => {
+        closeTransactionDetailModal();
+        editTransaction(id);
+    };
+
+    modal.classList.add('show');
+}
+
+function closeTransactionDetailModal() {
+    const modal = document.getElementById('transactionDetailModal');
+    if (modal) modal.classList.remove('show');
+    openTransactionDetailId = null;
 }
 
 function settlePerson(transactionId, person) {
@@ -3020,6 +3063,8 @@ window.calculatePersonTotal = calculatePersonTotal;
 window.addItem = addItem;
 window.removeItem = removeItem;
 window.toggleDetails = toggleDetails;
+window.openTransactionDetail = openTransactionDetail;
+window.closeTransactionDetailModal = closeTransactionDetailModal;
 window.editTransaction = editTransaction;
 window.settlePerson = settlePerson;
 window.settleBySettlement = settleBySettlement;
