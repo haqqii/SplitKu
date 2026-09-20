@@ -141,16 +141,13 @@ header .header-titles {
 }
 
 /* ============================================================================
-   ALERT MODAL
+   ALERT MODAL + small modals (confirm/delete/etc)
    ============================================================================ */
-.modal-sm { max-width: 360px; }
 
-.modal-footer-center { justify-content: center; }
-
-.alert-icon {
+/* Shared modal icon — used by alert/confirm/delete/settle modals */
+.modal-icon {
     width: 64px;
     height: 64px;
-    background: var(--warning-light);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -159,7 +156,19 @@ header .header-titles {
     margin: 0 auto var(--space-4);
 }
 
-.alert-title {
+.modal-icon-sm {
+    width: 56px;
+    height: 56px;
+    font-size: 1.75rem;
+}
+
+.modal-icon-danger { background: var(--danger-light); }
+.modal-icon-success { background: var(--success-light); }
+.modal-icon-warning { background: var(--warning-light); }
+.modal-icon-info { background: var(--info-light); }
+
+/* Modal shared text styles */
+.modal-title {
     margin: 0 0 var(--space-2);
     font-size: 1.1rem;
     font-weight: 700;
@@ -167,12 +176,111 @@ header .header-titles {
     text-align: center;
 }
 
-.alert-message {
+.modal-desc {
     color: var(--gray-600);
     margin: 0 0 var(--space-5);
     text-align: center;
     line-height: 1.5;
 }
+
+/* Modal body variants */
+.modal-body-center { text-align: center; }
+
+.modal-body-title {
+    margin: 0 0 var(--space-2);
+    color: var(--gray-800);
+    font-size: 1.1rem;
+}
+
+.modal-body-hint {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--gray-500);
+}
+
+/* Modal form inputs (used inside addPersonModal etc) */
+.modal-label {
+    display: block;
+    margin-bottom: var(--space-2);
+    font-weight: 500;
+    color: var(--gray-700);
+}
+
+.modal-input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    background: white;
+    color: var(--gray-800);
+    font-family: inherit;
+}
+
+.modal-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: var(--shadow-focus);
+}
+
+.modal-error {
+    color: var(--danger);
+    font-size: 0.85rem;
+    margin-top: var(--space-2);
+    display: none;
+}
+
+/* Choice cards (used in import/sync mode pickers) */
+.choice-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-bottom: var(--space-5);
+}
+
+.choice-card {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    background: white;
+}
+
+.choice-card:hover {
+    border-color: var(--gray-300);
+}
+
+.choice-card-active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+}
+
+.choice-card input[type="radio"] {
+    margin-top: 3px;
+    accent-color: var(--primary);
+}
+
+.choice-text { text-align: left; }
+
+.choice-title {
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 2px;
+}
+
+.choice-hint {
+    font-size: 0.85rem;
+    color: var(--gray-500);
+}
+.modal-sm { max-width: 360px; }
+
+.modal-footer-center { justify-content: center; }
 
 /* ============================================================================
    FILTER BAR

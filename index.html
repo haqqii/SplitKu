@@ -356,31 +356,29 @@
     <!-- Import Confirmation Modal -->
     <div id="importConfirmModal" class="modal">
         <div class="modal-backdrop" onclick="closeImportConfirmModal()"></div>
-        <div class="modal-content" style="text-align: center; max-width: 420px;">
-            <div style="width: 70px; height: 70px; background: #e0e7ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;">
-                <span style="font-size: 32px;">📥</span>
-            </div>
-            <h3 style="margin-bottom: 16px; color: #1f2937;">Import Data</h3>
-            <p style="color: #6b7280; margin-bottom: 20px; line-height: 1.5;">Pilih bagaimana data import akan ditambahkan:</p>
-            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-                <label id="importReplaceOption" style="display: flex; align-items: flex-start; gap: 12px; padding: 14px; border: 2px solid #e5e7eb; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onclick="selectImportMode('replace')">
-                    <input type="radio" name="importMode" value="replace" id="importModeReplace" style="margin-top: 3px;">
-                    <div style="text-align: left;">
-                        <div style="font-weight: 600; color: #1f2937; margin-bottom: 2px;">Ganti Semua</div>
-                        <div style="font-size: 0.85rem; color: #6b7280;">Hapus data lama, gunakan data import</div>
+        <div class="modal-content modal-sm">
+            <div class="modal-icon modal-icon-info">📥</div>
+            <h3 class="modal-title">Import Data</h3>
+            <p class="modal-desc">Pilih bagaimana data import akan ditambahkan:</p>
+            <div class="choice-stack">
+                <label id="importReplaceOption" class="choice-card" onclick="selectImportMode('replace')">
+                    <input type="radio" name="importMode" value="replace" id="importModeReplace">
+                    <div class="choice-text">
+                        <div class="choice-title">Ganti Semua</div>
+                        <div class="choice-hint">Hapus data lama, gunakan data import</div>
                     </div>
                 </label>
-                <label id="importMergeOption" style="display: flex; align-items: flex-start; gap: 12px; padding: 14px; border: 2px solid #4f46e5; background: #eef2ff; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onclick="selectImportMode('merge')">
-                    <input type="radio" name="importMode" value="merge" id="importModeMerge" checked style="margin-top: 3px;">
-                    <div style="text-align: left;">
-                        <div style="font-weight: 600; color: #1f2937; margin-bottom: 2px;">Gabungkan</div>
-                        <div style="font-size: 0.85rem; color: #6b7280;">Tambahkan ke data yang sudah ada</div>
+                <label id="importMergeOption" class="choice-card choice-card-active" onclick="selectImportMode('merge')">
+                    <input type="radio" name="importMode" value="merge" id="importModeMerge" checked>
+                    <div class="choice-text">
+                        <div class="choice-title">Gabungkan</div>
+                        <div class="choice-hint">Tambahkan ke data yang sudah ada</div>
                     </div>
                 </label>
             </div>
-            <div style="display: flex; gap: 12px;">
-                <button onclick="closeImportConfirmModal()" style="flex: 1; background: #f3f4f6; color: #374151; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Batal</button>
-                <button id="importBtn" onclick="confirmImport()" style="flex: 1; background: #4f46e5; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Import</button>
+            <div class="modal-footer">
+                <button onclick="closeImportConfirmModal()" class="btn btn-secondary">Batal</button>
+                <button id="importBtn" onclick="confirmImport()" class="btn btn-primary">Import</button>
             </div>
         </div>
     </div>
@@ -469,15 +467,13 @@
     <!-- Custom Confirm Delete Modal -->
     <div id="confirmDeleteModal" class="modal">
         <div class="modal-backdrop" onclick="closeConfirmDeleteModal()"></div>
-        <div class="modal-content" style="text-align: center;">
-            <div style="width: 70px; height: 70px; background: #fee2e2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;">
-                <span style="font-size: 32px;">🗑️</span>
-            </div>
-            <h3 style="margin-bottom: 8px; color: #1f2937;">Hapus Transaksi?</h3>
-            <p id="confirmDeleteMessage" style="color: #6b7280; margin-bottom: 24px; line-height: 1.5;">Apakah Anda yakin ingin menghapus transaksi ini?</p>
-            <div style="display: flex; gap: 12px;">
-                <button onclick="closeConfirmDeleteModal()" style="flex: 1; background: #f3f4f6; color: #374151; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Batal</button>
-                <button onclick="confirmDeleteTransaction()" style="flex: 1; background: #dc2626; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Ya, Hapus</button>
+        <div class="modal-content modal-sm">
+            <div class="modal-icon modal-icon-danger">🗑️</div>
+            <h3 class="modal-title">Hapus Transaksi?</h3>
+            <p id="confirmDeleteMessage" class="modal-desc">Apakah Anda yakin ingin menghapus transaksi ini?</p>
+            <div class="modal-footer">
+                <button onclick="closeConfirmDeleteModal()" class="btn btn-secondary">Batal</button>
+                <button onclick="confirmDeleteTransaction()" class="btn btn-danger">Ya, Hapus</button>
             </div>
         </div>
     </div>
@@ -485,15 +481,13 @@
     <!-- Custom Confirm Settle Modal -->
     <div id="confirmSettleModal" class="modal">
         <div class="modal-backdrop" onclick="closeConfirmSettleModal()"></div>
-        <div class="modal-content" style="text-align: center;">
-            <div style="width: 70px; height: 70px; background: #d1fae5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;">
-                <span style="font-size: 32px;">💰</span>
-            </div>
-            <h3 style="margin-bottom: 8px; color: #1f2937;">Konfirmasi Pembayaran</h3>
-            <p id="confirmSettleMessage" style="color: #6b7280; margin-bottom: 24px; line-height: 1.5;"></p>
-            <div style="display: flex; gap: 12px;">
-                <button onclick="closeConfirmSettleModal()" style="flex: 1; background: #f3f4f6; color: #374151; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Batal</button>
-                <button onclick="confirmSettle()" style="flex: 1; background: #10b981; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Ya, Sudah Bayar</button>
+        <div class="modal-content modal-sm">
+            <div class="modal-icon modal-icon-success">💰</div>
+            <h3 class="modal-title">Konfirmasi Pembayaran</h3>
+            <p id="confirmSettleMessage" class="modal-desc"></p>
+            <div class="modal-footer">
+                <button onclick="closeConfirmSettleModal()" class="btn btn-secondary">Batal</button>
+                <button onclick="confirmSettle()" class="btn btn-success">Ya, Sudah Bayar</button>
             </div>
         </div>
     </div>
@@ -501,21 +495,19 @@
     <!-- Modal: Tambah Orang -->
     <div id="addPersonModal" class="modal">
         <div class="modal-backdrop" onclick="closeAddPersonModal()"></div>
-        <div class="modal-content">
+        <div class="modal-content modal-sm">
             <div class="modal-header">
                 <h3>Tambah Orang Baru</h3>
                 <button onclick="closeAddPersonModal()" class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
-                <label style="display: block; margin-bottom: 8px; font-weight: 500; color: var(--gray-700);">Nama:</label>
-                <input type="text" id="newPersonName" placeholder="Masukkan nama"
-                       style="width: 100%; padding: 12px 14px; border: 2px solid var(--gray-200); border-radius: 10px; font-size: 1rem; box-sizing: border-box; transition: border-color 0.2s;"
-                       maxlength="50" autocomplete="off">
-                <p id="addPersonError" style="color: var(--danger); font-size: 0.85rem; margin-top: 8px; display: none;"></p>
+                <label class="modal-label">Nama:</label>
+                <input type="text" id="newPersonName" class="modal-input" placeholder="Masukkan nama" maxlength="50" autocomplete="off">
+                <p id="addPersonError" class="modal-error"></p>
             </div>
             <div class="modal-footer">
-                <button onclick="closeAddPersonModal()" style="padding: 12px 24px; background: var(--gray-100); color: var(--gray-600); border: none; border-radius: 10px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Batal</button>
-                <button onclick="confirmAddPerson()" style="padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Tambah</button>
+                <button onclick="closeAddPersonModal()" class="btn btn-secondary">Batal</button>
+                <button onclick="confirmAddPerson()" class="btn btn-primary">Tambah</button>
             </div>
         </div>
     </div>
@@ -523,25 +515,19 @@
     <!-- Modal: Hapus Orang -->
     <div id="deletePersonModal" class="modal">
         <div class="modal-backdrop" onclick="closeDeletePersonModal()"></div>
-        <div class="modal-content">
+        <div class="modal-content modal-sm">
             <div class="modal-header">
                 <h3>Hapus Orang</h3>
                 <button onclick="closeDeletePersonModal()" class="modal-close">&times;</button>
             </div>
-            <div class="modal-body" style="text-align: center;">
-                <div style="background: #fee2e2; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
-                    <span style="font-size: 28px;">!</span>
-                </div>
-                <p style="margin: 0 0 8px; color: var(--gray-800); font-size: 1.1rem;">
-                    Hapus <strong id="deletePersonName"></strong>?
-                </p>
-                <p style="margin: 0; font-size: 0.9rem; color: var(--gray-500);">
-                    Data transaksi terkait mungkin terpengaruh.
-                </p>
+            <div class="modal-body modal-body-center">
+                <div class="modal-icon modal-icon-danger modal-icon-sm">!</div>
+                <p class="modal-body-title">Hapus <strong id="deletePersonName"></strong>?</p>
+                <p class="modal-body-hint">Data transaksi terkait mungkin terpengaruh.</p>
             </div>
             <div class="modal-footer">
-                <button onclick="closeDeletePersonModal()" style="padding: 12px 24px; background: var(--gray-100); color: var(--gray-600); border: none; border-radius: 10px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Batal</button>
-                <button onclick="confirmDeletePerson()" style="padding: 12px 24px; background: #ef4444; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Hapus</button>
+                <button onclick="closeDeletePersonModal()" class="btn btn-secondary">Batal</button>
+                <button onclick="confirmDeletePerson()" class="btn btn-danger">Hapus</button>
             </div>
         </div>
     </div>
