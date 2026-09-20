@@ -816,7 +816,6 @@ const Storage = {
     SYNC_URL_KEY: 'hartaGonoGini_syncUrl',
     LAST_SYNC_KEY: 'hartaGonoGini_lastSync',
     AUTO_SYNC_KEY: 'hartaGonoGini_autoSync',
-    AUTO_SYNC_OFFERED_KEY: 'hartaGonoGini_autoSyncOffered',
 
     // Get the user's sync URL (empty string if not set)
     getSyncUrl: function() {
@@ -1163,14 +1162,6 @@ const Storage = {
     },
     setAutoSync: function(enabled) {
         try { localStorage.setItem(this.AUTO_SYNC_KEY, enabled ? '1' : '0'); }
-        catch (e) { /* ignore */ }
-    },
-    hasOfferedAutoSync: function() {
-        try { return localStorage.getItem(this.AUTO_SYNC_OFFERED_KEY) === '1'; }
-        catch (e) { return false; }
-    },
-    markAutoSyncOffered: function() {
-        try { localStorage.setItem(this.AUTO_SYNC_OFFERED_KEY, '1'); }
         catch (e) { /* ignore */ }
     }
 };

@@ -2041,6 +2041,9 @@ function downloadSyncTemplate() {
 }
 
 // Manual sync (button click)
+// Holds the URL selected for sync while the user picks a mode
+let _pendingSyncUrl = '';
+
 function confirmSync() {
     const input = document.getElementById('syncUrlInput');
     const raw = input ? input.value.trim() : '';
@@ -2049,10 +2052,52 @@ function confirmSync() {
         updateSyncUrlStatus('error', '❌ URL tidak valid');
         return;
     }
-    if (!confirm('Apakah mau sync Otomatis?')) {
-        return;
+
+    _pendingSyncUrl = exportUrl;
+
+    // Close URL modal so confirmation modal sits on top
+    closeSyncUrlModal();
+
+    // Highlight the option that matches the current auto-sync state
+    const autoOn = window.Storage && Storage.isAutoSyncEnabled && Storage.isAutoSyncEnabled();
+    const oneShotBtn = document.getElementById('syncModeOneShot');
+    const autoBtn = document.getElementById('syncModeAuto');
+    if (oneShotBtn && autoBtn) {
+        if (autoOn) {
+            autoBtn.style.borderColor = '#4f46e5';
+            autoBtn.style.background = '#eef2ff';
+            oneShotBtn.style.borderColor = '#e5e7eb';
+            oneShotBtn.style.background = 'transparent';
+        } else {
+            oneShotBtn.style.borderColor = '#4f46e5';
+            oneShotBtn.style.background = '#eef2ff';
+            autoBtn.style.borderColor = '#e5e7eb';
+            autoBtn.style.background = 'transparent';
+        }
     }
-    runSync(exportUrl);
+
+    document.getElementById('syncModeModal').classList.add('show');
+}
+
+function closeSyncModeModal() {
+    document.getElementById('syncModeModal').classList.remove('show');
+    _pendingSyncUrl = '';
+}
+
+// mode: 'once' = sync one time, 'auto' = sync + enable auto-sync for future
+function confirmSyncMode(mode) {
+    const url = _pendingSyncUrl;
+    closeSyncModeModal();
+    if (!url) return;
+
+    if (mode === 'auto' && window.Storage && Storage.setAutoSync) {
+        Storage.setAutoSync(true);
+        // Update checkbox if URL modal is reopened later
+        const cb = document.getElementById('autoSyncToggle');
+        if (cb) cb.checked = true;
+    }
+
+    runSync(url);
 }
 
 // Track last successful sync time (for focus-sync debouncing)
@@ -2107,9 +2152,6 @@ function runSync(exportUrl, options = {}) {
                     `total ${result.total} transaksi`
                 );
             }
-
-            // First-time offer to enable auto-sync (only after a manual sync, not auto)
-            offerAutoSyncIfFirstTime();
         })
         .catch(err => {
             hideLoadingToast();
@@ -2142,27 +2184,8 @@ function tryAutoSync() {
 }
 
 // After first successful sync, ask the user if they want auto-sync enabled.
-// Runs once per user (tracked via hasOfferedAutoSync flag).
-function offerAutoSyncIfFirstTime() {
-    if (!window.Storage) return;
-    if (Storage.hasOfferedAutoSync && Storage.hasOfferedAutoSync()) return;
-    if (Storage.isAutoSyncEnabled && Storage.isAutoSyncEnabled()) {
-        Storage.markAutoSyncOffered();
-        return;
-    }
-
-    Storage.markAutoSyncOffered();
-
-    setTimeout(() => {
-        if (confirm('Apakah mau sync Otomatis?\n\nAkan sync otomatis setiap kali:\n• Buka app ini\n• Balik ke tab ini (setelah ke tab lain)\n\nKamu bisa toggle nanti di modal sync.')) {
-            if (Storage.setAutoSync) Storage.setAutoSync(true);
-            showToast('✓ Auto-sync diaktifkan');
-            // Update checkbox if modal is currently open
-            const cb = document.getElementById('autoSyncToggle');
-            if (cb) cb.checked = true;
-        }
-    }, 800);
-}
+// (Removed: replaced by the styled confirmation modal that fires on every
+// manual sync, so first-time onboarding is unnecessary.)
 
 // Sync the auto-sync checkbox state from storage to the UI
 function syncAutoSyncCheckbox() {
@@ -2922,6 +2945,8 @@ window.onSyncUrlKeyDown = onSyncUrlKeyDown;
 window.downloadSyncTemplate = downloadSyncTemplate;
 window.confirmSync = confirmSync;
 window.onAutoSyncToggleChange = onAutoSyncToggleChange;
+window.confirmSyncMode = confirmSyncMode;
+window.closeSyncModeModal = closeSyncModeModal;
 window.showImportConfirmModal = showImportConfirmModal;
 window.selectFileForImport = selectFileForImport;
 
