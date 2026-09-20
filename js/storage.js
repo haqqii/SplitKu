@@ -813,7 +813,7 @@ const Storage = {
     // ============================================================================
 
     // Sheet export URL — change this if the source sheet changes
-    SYNC_URL: 'https://docs.google.com/spreadsheets/d/17w-BFrDu60z3PpXIe0JqjMFEU1yUQmMeVlLO64742OA/export?format=csv&gid=0',
+    SYNC_URL: 'https://docs.google.com/spreadsheets/d/17w-BFrDu60z3PpXIe0JqjMFEU1yUQmMeVlLO64742OA/export?format=csv&gid=661820092',
     LAST_SYNC_KEY: 'hartaGonoGini_lastSync',
 
     // Fetch sheet and parse into app's internal format
