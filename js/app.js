@@ -815,31 +815,41 @@ function renderSettlements() {
         ? settlements
         : settlements.slice(0, SETTLEMENTS_INITIAL_COUNT);
 
-    container.innerHTML = visibleSettlements.map(s => `
-        <li class="settlement-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-                <span>
-                    <span class="from">${escapeHtml(getPersonName(s.from))}</span>
-                    <span class="arrow">bayar ke</span>
-                    <span class="to">${escapeHtml(getPersonName(s.to))}</span>
-                </span>
-                <span>
-                    <span class="amount">${formatCurrency(s.amount)}</span>
-                    <button class="btn-settle" data-action="settle" data-from="${escapeHtml(s.from)}" data-to="${escapeHtml(s.to)}" data-amount="${s.amount}">Selesai</button>
-                </span>
+    container.innerHTML = visibleSettlements.map(s => {
+        const fromName = escapeHtml(getPersonName(s.from));
+        const toName = escapeHtml(getPersonName(s.to));
+        const fromClass = escapeHtml(getPersonColorClass(s.from));
+        const toClass = escapeHtml(getPersonColorClass(s.to));
+        const fromInitial = (fromName || '?').charAt(0).toUpperCase();
+        const toInitial = (toName || '?').charAt(0).toUpperCase();
+        return `
+        <li class="settlement-item">
+            <div class="settlement-main">
+                <div class="settlement-people">
+                    <span class="person-avatar ${fromClass}">${fromInitial}</span>
+                    <span class="settlement-from">${fromName}</span>
+                    <span class="settlement-arrow" aria-hidden="true">→</span>
+                    <span class="person-avatar ${toClass}">${toInitial}</span>
+                    <span class="settlement-to">${toName}</span>
+                </div>
+                <div class="settlement-action">
+                    <span class="settlement-amount">${formatCurrency(s.amount)}</span>
+                    <button class="btn btn-success" data-action="settle" data-from="${escapeHtml(s.from)}" data-to="${escapeHtml(s.to)}" data-amount="${s.amount}">Selesai</button>
+                </div>
             </div>
             ${s.items.length > 0 ? `
-                <div style="font-size: 0.85rem; color: #6b7280; padding-left: 8px; width: 100%;">
+                <ul class="settlement-items-list">
                     ${s.items.map(item => `
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px; ${item.isReverse ? 'opacity: 0.7;' : ''}">
-                            <span>• ${escapeHtml(item.name)}${item.isReverse ? ' (terkompensasi)' : ''}</span>
-                            <span>${formatCurrency(item.amount)}</span>
-                        </div>
+                        <li class="${item.isReverse ? 'settlement-item-row reverse' : 'settlement-item-row'}">
+                            <span>${escapeHtml(item.name)}${item.isReverse ? ' <em>(terkompensasi)</em>' : ''}</span>
+                            <span class="amount">${formatCurrency(item.amount)}</span>
+                        </li>
                     `).join('')}
-                </div>
+                </ul>
             ` : ''}
         </li>
-    `).join('');
+    `;
+    }).join('');
 
     // Wire up settle handlers via dataset (safe — values flow through JS, not attribute parsing)
     container.querySelectorAll('[data-action="settle"]').forEach(btn => {
