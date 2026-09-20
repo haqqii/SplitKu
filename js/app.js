@@ -250,18 +250,19 @@ function renderPeopleManage() {
     for (let i = 0; i < people.length; i++) {
         const person = people[i];
         const isInUse = isPersonInUse(person.key);
-        const removeBtnStyle = isInUse
-            ? 'padding: 8px 12px; background: #f3f4f6; color: #9ca3af; border: none; border-radius: 6px; cursor: not-allowed;'
-            : 'padding: 8px 12px; background: var(--danger); color: white; border: none; border-radius: 6px; cursor: pointer;';
         const tooltip = isInUse
             ? ' title="' + escapeHtml('Orang ini dipakai di transaksi. Edit/hapus transaksi yang referensikan dia dulu.') + '"'
             : '';
-        const removeBtn = '<button data-action="delete-person" data-key="' + escapeHtml(person.key) + '"' +
-            (isInUse ? ' disabled' + tooltip : '') +
-            ' style="' + removeBtnStyle + '">Hapus</button>';
-        html += '<div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">' +
-            '<input type="text" value="' + escapeHtml(person.name) + '" data-action="update-person" data-key="' + escapeHtml(person.key) + '"' +
-            ' style="flex: 1; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px;">' +
+        // Person avatar (initial letter on colored circle)
+        const initial = (person.name || '?').trim().charAt(0).toUpperCase();
+        const avatarHtml = '<span class="person-avatar ' + escapeHtml(getPersonColorClass(person.key)) + '">' +
+            escapeHtml(initial) + '</span>';
+        const removeBtn = '<button class="btn btn-danger" data-action="delete-person" data-key="' +
+            escapeHtml(person.key) + '"' + (isInUse ? ' disabled' + tooltip : '') +
+            ' title="Hapus ' + escapeHtml(person.name) + '" style="padding: 8px 14px;">Hapus</button>';
+        html += '<div class="person-row">' +
+            avatarHtml +
+            '<input type="text" class="person-input" value="' + escapeHtml(person.name) + '" data-action="update-person" data-key="' + escapeHtml(person.key) + '">' +
             removeBtn +
             '</div>';
     }

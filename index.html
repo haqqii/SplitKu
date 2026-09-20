@@ -62,22 +62,34 @@
                 <button onclick="toggleDashboard()" id="dashboardToggleBtn" style="background: var(--gray-200); color: var(--gray-700); border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">👁️ Sembunyikan</button>
             </div>
             <div id="dashboardContent">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 20px;">
-                <div class="stat-card" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 16px; border-radius: 10px;">
-                    <div class="stat-value" style="font-size: 1.5rem; font-weight: 700; color: #92400e;" id="statTotalMonth">Rp 0</div>
-                    <div class="stat-label" style="font-size: 0.85rem; color: #b45309;">Total Bulan Ini</div>
+            <div class="stat-grid">
+                <div class="stat-card stat-warning">
+                    <div class="stat-icon">📊</div>
+                    <div>
+                        <div class="stat-value" id="statTotalMonth">Rp 0</div>
+                        <div class="stat-label">Total Bulan Ini</div>
+                    </div>
                 </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); padding: 16px; border-radius: 10px;">
-                    <div class="stat-value" style="font-size: 1.5rem; font-weight: 700; color: #1e40af;" id="statPending">Rp 0</div>
-                    <div class="stat-label" style="font-size: 0.85rem; color: #1d4ed8;">Belum Settle</div>
+                <div class="stat-card stat-info">
+                    <div class="stat-icon">⏳</div>
+                    <div>
+                        <div class="stat-value" id="statPending">Rp 0</div>
+                        <div class="stat-label">Belum Settle</div>
+                    </div>
                 </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); padding: 16px; border-radius: 10px;">
-                    <div class="stat-value" style="font-size: 1.5rem; font-weight: 700; color: #047857;" id="statSettled">0</div>
-                    <div class="stat-label" style="font-size: 0.85rem; color: #059669;">Transaksi Settle</div>
+                <div class="stat-card stat-success">
+                    <div class="stat-icon">✓</div>
+                    <div>
+                        <div class="stat-value" id="statSettled">0</div>
+                        <div class="stat-label">Transaksi Settle</div>
+                    </div>
                 </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); padding: 16px; border-radius: 10px;">
-                    <div class="stat-value" style="font-size: 1.5rem; font-weight: 700; color: #9d174d;" id="statTopPayer">-</div>
-                    <div class="stat-label" style="font-size: 0.85rem; color: #be185d;">Paling Banyak Bayar</div>
+                <div class="stat-card stat-pink">
+                    <div class="stat-icon">⭐</div>
+                    <div>
+                        <div class="stat-value" id="statTopPayer">-</div>
+                        <div class="stat-label">Paling Banyak Bayar</div>
+                    </div>
                 </div>
             </div>
 
