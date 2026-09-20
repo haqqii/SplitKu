@@ -868,12 +868,13 @@ const Storage = {
 
     // Generate a spreadsheet template with the expected schema and a sample row.
     // Returns XLSX when SheetJS is available, falls back to CSV otherwise.
+    // Uses the Split column format that matches the user's actual sheet.
     getTemplateRows: function() {
         return [
-            ['ID', 'Tanggal', 'Deskripsi', 'Kategori', 'Pembayar', 'Total', 'Status', '', 'Qulub', 'Yohn', 'Haqqi', 'Aldo', 'Acha', 'Lintang', 'Mega'],
-            [1, '10 May 26', 'Coffee', 'Makan', 'Qulub', 'Rp 50,000', 'Selesai', '', 'Rp 25,000', 'Rp 25,000', '', '', '', ''],
-            [2, '10 May 26', 'Lunch', 'Makan', 'Yohn', 'Rp 80,000', 'Pending', '', 'Rp 20,000', 'Rp 20,000', '', 'Rp 20,000', 'Rp 20,000', ''],
-            ['', '', '', '', '', '', '', 'TOTAL:', 'Rp 45,000', 'Rp 45,000', '', 'Rp 20,000', 'Rp 20,000', '']
+            ['ID', 'Tanggal', 'Deskripsi', 'Kategori', 'Pembayar', 'Total', 'Status', 'Split'],
+            [1, '10 May 26', 'Coffee', 'Makan', 'Qulub', 50000, 'Selesai', '; Aldo(25000)(Coffee); Acha(25000)(Coffee)'],
+            [2, '10 May 26', 'Lunch', 'Makan', 'Yohn', 80000, 'Pending', '; Yohn(20000)(Lunch); Haqqi(20000)(Lunch); Aldo(20000)(Lunch); Acha(20000)(Lunch)'],
+            [3, '11 May 26', 'Carry Over', 'Lainnya', 'Qulub', 111644, 'Pending', '; Aldo(111644)(Carry Over ke Qulub (3))']
         ];
     },
 
@@ -915,8 +916,10 @@ const Storage = {
     },
 
     // Parse the Google Sheet CSV format
-    // Expected columns: ID,Tanggal,Deskripsi,Kategori,Pembayar,Total,Status,,<Person1>,<Person2>,...
-    // First row(s) without ID are treated as summary rows and skipped.
+    // Supports two layouts (auto-detected):
+    //   (A) Per-person columns: ID,Tanggal,...,Status,,<Person1>,<Person2>,...
+    //   (B) Single Split column: ID,Tanggal,...,Status,Split
+    //       Split cell = "; Name(amount)(item); Name2(amount)(item)"
     parseSyncCSV: function(csv) {
         const lines = csv.split(/\r?\n/).filter(l => l.trim());
         if (lines.length < 2) {
@@ -943,24 +946,39 @@ const Storage = {
         const payerIdx = findIdx('Pembayar');
         const totalIdx = findIdx('Total');
         const statusIdx = findIdx('Status');
+        const splitColIdx = findIdx('Split');
 
-        // Person columns: everything after Status, skipping empty header columns
-        let peopleStartIdx = statusIdx >= 0 ? statusIdx + 1 : headers.length;
-        while (peopleStartIdx < headers.length && headers[peopleStartIdx] === '') {
-            peopleStartIdx++;
+        // Detect format
+        const useSplitColumn = splitColIdx >= 0;
+
+        // Per-person columns: everything after Status, skipping empty header columns
+        let personNames = [];
+        let personKeys = [];
+        let peopleStartIdx = -1;
+
+        if (!useSplitColumn) {
+            peopleStartIdx = statusIdx >= 0 ? statusIdx + 1 : headers.length;
+            while (peopleStartIdx < headers.length && headers[peopleStartIdx] === '') {
+                peopleStartIdx++;
+            }
+            personNames = headers.slice(peopleStartIdx).filter(h => h);
+            personKeys = personNames.map(n => this.personKeyFromName(n));
         }
-        const personNames = headers.slice(peopleStartIdx).filter(h => h);
-        const personKeys = personNames.map(n => this.personKeyFromName(n));
 
-        // Derive people list (dedupe by key — sheet may list same name twice)
+        // Collect people names from data + per-person headers
         const seen = new Set();
         const people = [];
-        for (let i = 0; i < personNames.length; i++) {
-            if (!seen.has(personKeys[i])) {
-                seen.add(personKeys[i]);
-                people.push({ key: personKeys[i], name: personNames[i] });
+        const addPerson = (rawName) => {
+            const name = rawName.trim();
+            if (!name) return null;
+            const key = this.personKeyFromName(name);
+            if (!seen.has(key)) {
+                seen.add(key);
+                people.push({ key, name });
             }
-        }
+            return key;
+        };
+        personNames.forEach(addPerson);
 
         // Parse data rows
         const transactions = [];
@@ -979,20 +997,45 @@ const Storage = {
             const category = ((values[catIdx] || '').trim()) || 'lainnya';
             const payerName = (values[payerIdx] || '').trim();
             const payerKey = this.personKeyFromName(payerName);
+            if (payerKey) addPerson(payerName); // ensure payer is in people list
             const totalAmount = this.parseSyncAmount(values[totalIdx] || '');
             const status = ((values[statusIdx] || '').trim()).toLowerCase();
+            const isPaid = status === 'selesai' || status === 'settled' || status === 'paid';
 
-            // Build split map from person columns
+            // Build split map based on format
             const split = {};
             const splitStatus = {};
-            for (let p = 0; p < personNames.length; p++) {
-                const colIdx = peopleStartIdx + p;
-                if (colIdx >= values.length) continue;
-                const amt = this.parseSyncAmount(values[colIdx]);
-                if (amt > 0) {
-                    split[personKeys[p]] = { amount: amt, items: [] };
-                    if (status === 'selesai' || status === 'settled') {
-                        splitStatus[personKeys[p]] = 'paid';
+
+            if (useSplitColumn) {
+                // Parse "; Name(amount)(desc); Name2(amount)(desc)"
+                const splitStr = (values[splitColIdx] || '').trim();
+                if (splitStr) {
+                    const entries = splitStr.split(';');
+                    for (const entry of entries) {
+                        const trimmed = entry.trim();
+                        if (!trimmed) continue;
+                        // Match: Name(amount)(description)  — description can contain parens
+                        const match = trimmed.match(/^([^()]+?)\((\d+)\)\s*(.*)$/);
+                        if (!match) continue;
+                        const [, name, amountStr, itemDesc] = match;
+                        const amount = parseInt(amountStr, 10);
+                        if (!amount || amount <= 0) continue;
+                        const key = addPerson(name);
+                        if (!key) continue;
+                        const desc = itemDesc.replace(/^\(/, '').replace(/\)$/, '').trim();
+                        const items = desc ? [{ name: desc, amount }] : [];
+                        split[key] = { amount, items };
+                        if (isPaid) splitStatus[key] = 'paid';
+                    }
+                }
+            } else {
+                for (let p = 0; p < personNames.length; p++) {
+                    const colIdx = peopleStartIdx + p;
+                    if (colIdx >= values.length) continue;
+                    const amt = this.parseSyncAmount(values[colIdx]);
+                    if (amt > 0) {
+                        split[personKeys[p]] = { amount: amt, items: [] };
+                        if (isPaid) splitStatus[personKeys[p]] = 'paid';
                     }
                 }
             }
@@ -1022,14 +1065,14 @@ const Storage = {
         return String(name).toLowerCase().replace(/\s+/g, '');
     },
 
-    // Parse "10 May 26" → "2026-05-10"
+    // Parse "10 May 26" or "21-Jul-2026" → "2026-05-10"
     parseSyncDate: function(str) {
         if (!str) return null;
         str = str.trim();
         // Already ISO
         if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.split('T')[0];
-        // DD MMM YY(YY) — English + Indonesian month names
-        const parts = str.split(/\s+/);
+        // DD MMM YY(YY) or DD-MMM-YYYY — split on whitespace OR dash
+        const parts = str.split(/[\s\-]+/);
         if (parts.length !== 3) return null;
         const day = parseInt(parts[0], 10);
         const monthLower = parts[1].toLowerCase().substring(0, 3);
