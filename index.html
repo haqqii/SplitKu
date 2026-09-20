@@ -12,14 +12,17 @@
 <body>
     <header>
         <div class="container">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <div>
-                    <h1>🏠 SplitKu</h1>
-                    <p>Pelacak Pengeluaran Bersama</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span class="header-mark">💰</span>
+                    <div class="header-titles">
+                        <h1 style="margin: 0;">SplitKu</h1>
+                        <p>Pelacak Pengeluaran bersama</p>
+                    </div>
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <!-- Dark Mode Toggle -->
-                    <button onclick="toggleDarkMode()" id="darkModeBtn" style="background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 1.2rem;" title="Dark Mode">
+                    <button onclick="toggleDarkMode()" id="darkModeBtn" class="btn btn-secondary" title="Dark Mode">
                         🌙
                     </button>
                     <!-- Export/Import Menu -->

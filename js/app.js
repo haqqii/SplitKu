@@ -216,6 +216,17 @@ function getPersonName(key) {
     return person ? person.name : key;
 }
 
+// Stable hash → palette index (0–7). Picks a deterministic color
+// for each person so the same name always renders the same color.
+function getPersonColorClass(key) {
+    let hash = 0;
+    for (let i = 0; i < (key || '').length; i++) {
+        hash = ((hash << 5) - hash) + key.charCodeAt(i);
+        hash |= 0;
+    }
+    return 'person-color-' + (Math.abs(hash) % 8);
+}
+
 function renderPeopleManage() {
     const container = document.getElementById('peopleList');
     if (!container) {
@@ -225,7 +236,11 @@ function renderPeopleManage() {
 
     // Empty state
     if (people.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: var(--gray-400); padding: 20px;">Belum ada orang. Klik "Tambah Orang" untuk mulai.</p>';
+        container.innerHTML = '<div class="empty-state">' +
+            '<div class="empty-state-icon">👥</div>' +
+            '<div class="empty-state-title">Belum ada orang</div>' +
+            '<div class="empty-state-hint">Klik <strong>+ Tambah Orang</strong>, atau sync dari Google Sheet untuk memulai.</div>' +
+            '</div>';
         renderFormPeople();
         return;
     }
@@ -950,7 +965,7 @@ function renderTransactions() {
                     <span style="font-size: 1.2rem;">${CATEGORY_ICONS[t.category] || '📦'}</span>
                     <span style="font-size: 0.8rem; color: #6b7280;">${CATEGORY_LABELS[t.category] || 'Lainnya'}</span>
                 </td>
-                <td><span class="person person-${t.payer}">${escapeHtml(getPersonName(t.payer))}</span></td>
+                <td><span class="person ${getPersonColorClass(t.payer)}">${escapeHtml(getPersonName(t.payer))}</span></td>
                 <td class="amount">${formatCurrency(t.totalAmount)}</td>
                 <td>
                     <button onclick="downloadImage(${t.id})" title="Download Detail" style="background: var(--primary); color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 1rem;">📥</button>
@@ -1000,7 +1015,7 @@ function renderTransactionDetails(t, splitStatus) {
                     return `
                         <div class="split-card ${isPaid ? 'paid' : ''}">
                             <div class="split-card-header">
-                                <span class="person-name person-${person}">${escapeHtml(getPersonName(person))}</span>
+                                <span class="person-name ${getPersonColorClass(person)}">${escapeHtml(getPersonName(person))}</span>
                                 <span class="split-amount">${formatCurrency(amount)}</span>
                             </div>
                             ${items.length > 0 ? `
@@ -1161,7 +1176,7 @@ function renderHistory() {
                 <td>
                     <span style="font-size: 1.2rem;">${CATEGORY_ICONS[t.category] || '📦'}</span>
                 </td>
-                <td><span class="person person-${t.payer}">${escapeHtml(getPersonName(t.payer))}</span></td>
+                <td><span class="person ${getPersonColorClass(t.payer)}">${escapeHtml(getPersonName(t.payer))}</span></td>
                 <td class="amount">${formatCurrency(t.totalAmount)}</td>
                 <td><span class="status-badge status-settled">Settled</span></td>
             </tr>
@@ -1329,7 +1344,7 @@ function updateSplitAmountInputs() {
         return `
             <div class="person-split-section">
                 <div class="person-split-header">
-                    <span class="person-name person-${person}">${escapeHtml(getPersonName(person))}</span>
+                    <span class="person-name ${getPersonColorClass(person)}">${escapeHtml(getPersonName(person))}</span>
                     <span class="person-total" id="total-${person}">Rp 0</span>
                 </div>
                 <div class="items-container" id="items-${person}">
