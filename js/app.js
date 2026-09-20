@@ -949,7 +949,13 @@ function renderTransactions() {
     const paginatedTransactions = filteredTransactions.slice(startIndex, startIndex + itemsPerPage);
 
     if (paginatedTransactions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #9ca3af;">Tidak ada transaksi yang cocok</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="table-empty-cell">' +
+            '<div class="empty-state">' +
+            '<div class="empty-state-icon">📭</div>' +
+            '<div class="empty-state-title">Tidak ada transaksi</div>' +
+            '<div class="empty-state-hint">Belum ada transaksi yang cocok dengan filter. Coba ubah filter atau tambah transaksi baru.</div>' +
+            '</div>' +
+            '</td></tr>';
         document.getElementById('transactionsPagination').innerHTML = '';
         return;
     }
@@ -960,26 +966,26 @@ function renderTransactions() {
         const globalIdx = startIndex + idx + 1;
 
         return `
-            <tr>
-                <td>${globalIdx}</td>
-                <td style="white-space: nowrap; font-size: 0.85rem; color: #6b7280;">${formatIndonesianDate(t.date)}</td>
+            <tr class="${allPaid ? 'tx-row tx-settled' : 'tx-row tx-pending'}">
+                <td class="tx-num">${globalIdx}</td>
+                <td class="tx-date">${formatIndonesianDate(t.date)}</td>
                 <td>
-                    <div onclick="toggleDetails(${t.id})" style="cursor:pointer;font-weight:500;">
+                    <div class="tx-description" onclick="toggleDetails(${t.id})">
                         ${escapeHtml(t.description || '-')}
-                        <span style="color:var(--gray-400);font-size:0.8rem;">(klik untuk lihat split)</span>
+                        <span class="tx-hint">(klik untuk lihat split)</span>
                     </div>
                     <div id="details-${t.id}" class="expanded-details">
                         ${renderTransactionDetails(t, splitStatus)}
                     </div>
                 </td>
-                <td>
-                    <span style="font-size: 1.2rem;">${CATEGORY_ICONS[t.category] || '📦'}</span>
-                    <span style="font-size: 0.8rem; color: #6b7280;">${CATEGORY_LABELS[t.category] || 'Lainnya'}</span>
+                <td class="tx-category">
+                    <span class="tx-cat-icon">${CATEGORY_ICONS[t.category] || '📦'}</span>
+                    <span class="tx-cat-label">${CATEGORY_LABELS[t.category] || 'Lainnya'}</span>
                 </td>
                 <td><span class="person ${getPersonColorClass(t.payer)}">${escapeHtml(getPersonName(t.payer))}</span></td>
-                <td class="amount">${formatCurrency(t.totalAmount)}</td>
+                <td class="tx-amount">${formatCurrency(t.totalAmount)}</td>
                 <td>
-                    <button onclick="downloadImage(${t.id})" title="Download Detail" style="background: var(--primary); color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 1rem;">📥</button>
+                    <button onclick="downloadImage(${t.id})" title="Download Detail" class="btn btn-icon-only btn-secondary">📥</button>
                 </td>
                 <td>
                     <span class="status-badge ${allPaid ? 'status-settled' : 'status-pending'}">
@@ -987,9 +993,9 @@ function renderTransactions() {
                     </span>
                 </td>
                 <td>
-                    <div style="display: flex; gap: 4px;">
-                        <button onclick="editTransaction(${t.id})" style="padding: 4px 8px; font-size: 0.75rem; background: var(--warning); color: white; border: none; border-radius: 4px; cursor: pointer;">Edit</button>
-                        <button onclick="deleteTransaction(${t.id})" style="padding: 4px 8px; font-size: 0.75rem; background: var(--danger); color: white; border: none; border-radius: 4px; cursor: pointer;">Hapus</button>
+                    <div class="tx-actions">
+                        <button onclick="editTransaction(${t.id})" class="btn btn-warning btn-sm">Edit</button>
+                        <button onclick="deleteTransaction(${t.id})" class="btn btn-danger btn-sm">Hapus</button>
                     </div>
                 </td>
             </tr>

@@ -148,25 +148,76 @@ header .header-titles {
 
 .transactions-table th,
 .transactions-table td {
-    padding: 12px;
+    padding: 12px 14px;
     text-align: left;
-    border-bottom: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--gray-100);
+    vertical-align: middle;
 }
 
 .transactions-table th {
     background: var(--gray-50);
     font-weight: 600;
     color: var(--gray-600);
-    font-size: 0.875rem;
+    font-size: 0.78rem;
     text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
-.transactions-table tr:hover {
+.transactions-table tr.tx-row {
+    transition: background var(--transition-fast);
+}
+
+.transactions-table tr.tx-row:hover {
     background: var(--gray-50);
 }
 
-.transactions-table .description {
+.transactions-table tr.tx-settled {
+    background: linear-gradient(90deg, var(--success-light) 0%, transparent 100%);
+}
+
+.transactions-table .tx-num {
+    color: var(--gray-400);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+}
+
+.transactions-table .tx-date {
+    white-space: nowrap;
+    font-size: 0.85rem;
+    color: var(--gray-600);
+}
+
+.transactions-table .tx-description {
+    cursor: pointer;
     font-weight: 500;
+}
+
+.transactions-table .tx-hint {
+    color: var(--gray-400);
+    font-size: 0.75rem;
+    font-weight: normal;
+    margin-left: 4px;
+}
+
+.transactions-table .tx-category { white-space: nowrap; }
+.transactions-table .tx-cat-icon { font-size: 1.2rem; margin-right: 4px; }
+.transactions-table .tx-cat-label { font-size: 0.78rem; color: var(--gray-500); }
+
+.transactions-table .tx-amount {
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+    color: var(--gray-800);
+    font-variant-numeric: tabular-nums;
+}
+
+.transactions-table .tx-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.transactions-table .table-empty-cell {
+    padding: 0 !important;
+    border: none !important;
 }
 
 .transactions-table .person {
@@ -427,6 +478,11 @@ header .header-titles {
 
 .btn-danger { background: var(--danger); color: white; }
 .btn-danger:hover:not(:disabled) { background: #dc2626; }
+
+.btn-warning { background: var(--warning); color: white; }
+.btn-warning:hover:not(:disabled) { background: #d97706; }
+
+.btn-sm { padding: 6px 10px; font-size: 0.8rem; }
 
 .btn-ghost { background: transparent; color: var(--gray-600); }
 .btn-ghost:hover:not(:disabled) { background: var(--gray-100); }
