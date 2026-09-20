@@ -20,32 +20,32 @@
                         <p>Pelacak Pengeluaran bersama</p>
                     </div>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div class="header-actions">
                     <!-- Dark Mode Toggle -->
-                    <button onclick="toggleDarkMode()" id="darkModeBtn" class="btn btn-secondary" title="Dark Mode">
+                    <button onclick="toggleDarkMode()" id="darkModeBtn" class="btn btn-icon" title="Dark Mode">
                         🌙
                     </button>
                     <!-- Export/Import Menu -->
-                    <div style="position: relative; display: inline-block;">
-                        <button onclick="toggleExportMenu()" style="background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+                    <div class="dropdown">
+                        <button onclick="toggleExportMenu()" class="btn btn-primary">
                             📥 Export/Import
                         </button>
-                        <div id="exportMenu" style="display: none; position: absolute; right: 0; top: 100%; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; min-width: 180px; overflow: hidden;">
-                            <button onclick="exportToJSON()" style="width: 100%; padding: 10px 16px; border: none; background: none; text-align: left; cursor: pointer; color: #374151; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
-                                📄 Export JSON
+                        <div id="exportMenu" class="dropdown-menu">
+                            <button onclick="exportToJSON()" class="dropdown-item">
+                                <span>📄</span> Export JSON
                             </button>
-                            <button onclick="exportToCSV()" style="width: 100%; padding: 10px 16px; border: none; background: none; text-align: left; cursor: pointer; color: #374151; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
-                                📊 Export CSV
+                            <button onclick="exportToCSV()" class="dropdown-item">
+                                <span>📊</span> Export CSV
                             </button>
-                            <button onclick="selectFileForImport()" style="width: 100%; padding: 10px 16px; border: none; background: none; text-align: left; cursor: pointer; color: #374151; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
-                                📤 Import Data
+                            <button onclick="selectFileForImport()" class="dropdown-item">
+                                <span>📤</span> Import Data
                             </button>
-                            <button onclick="showSyncConfirmModal()" style="width: 100%; padding: 10px 16px; border: none; background: none; text-align: left; cursor: pointer; color: #374151; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
-                                🔄 Sinkron dari Google Sheet
+                            <button onclick="showSyncConfirmModal()" class="dropdown-item">
+                                <span>🔄</span> Sinkron dari Google Sheet
                             </button>
-                            <div style="border-top: 1px solid #e5e7eb; margin: 4px 0;"></div>
-                            <button onclick="resetAllData()" style="width: 100%; padding: 10px 16px; border: none; background: none; text-align: left; cursor: pointer; color: #dc2626; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
-                                🗑️ Reset Semua
+                            <div class="dropdown-divider"></div>
+                            <button onclick="resetAllData()" class="dropdown-item dropdown-item-danger">
+                                <span>🗑️</span> Reset Semua
                             </button>
                         </div>
                     </div>

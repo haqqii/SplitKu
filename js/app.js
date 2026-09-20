@@ -193,7 +193,7 @@ function initDarkMode() {
 function toggleExportMenu() {
     const menu = document.getElementById('exportMenu');
     if (menu) {
-        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        menu.classList.toggle('show');
     }
 }
 window.toggleExportMenu = toggleExportMenu;
@@ -201,9 +201,9 @@ window.toggleExportMenu = toggleExportMenu;
 // Close export menu when clicking outside
 document.addEventListener('click', function(e) {
     const menu = document.getElementById('exportMenu');
-    const btn = e.target.closest('button');
-    if (menu && !menu.contains(e.target) && (!btn || !btn.onclick?.toString().includes('toggleExportMenu'))) {
-        menu.style.display = 'none';
+    const dropdown = menu ? menu.closest('.dropdown') : null;
+    if (dropdown && !dropdown.contains(e.target)) {
+        menu.classList.remove('show');
     }
 });
 
