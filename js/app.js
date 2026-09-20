@@ -1328,8 +1328,10 @@ function closeConfirmSettleModal() {
 }
 
 function openSettlementDetail(from, to) {
-    // Find settlement matching from/to (order-sensitive: only the directed settlement)
-    const settlement = settlements.find(s => s.from === from && s.to === to);
+    // Recompute settlements (it's a local const inside renderSettlements,
+    // not a module-level variable — so we have to call getSettlements() here)
+    const currentSettlements = getSettlements();
+    const settlement = currentSettlements.find(s => s.from === from && s.to === to);
     if (!settlement) return;
 
     const modal = document.getElementById('settlementDetailModal');
