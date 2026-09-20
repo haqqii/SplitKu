@@ -239,20 +239,23 @@ const Charts = {
         });
 
         transactions.forEach(t => {
-            const category = t.category || 'lainnya';
+            // Normalize to lowercase so custom imports with different casing still match
+            const category = (t.category || 'lainnya').toLowerCase().trim();
             if (!breakdown.hasOwnProperty(category)) {
                 breakdown[category] = 0;
             }
             breakdown[category] += t.totalAmount || 0;
         });
 
-        // Convert to chart format
+        // Convert to chart format. Fallback cycles through the palette so
+        // unmapped categories still get distinct colors instead of all-indigo.
+        let fallbackIdx = 0;
         return Object.entries(breakdown)
             .filter(([_, value]) => value > 0)
             .map(([key, value]) => ({
                 label: this.CATEGORY_LABELS[key] || key,
                 value: value,
-                color: this.CATEGORY_COLORS[key] || this.COLORS[0]
+                color: this.CATEGORY_COLORS[key] || this.COLORS[fallbackIdx++ % this.COLORS.length]
             }))
             .sort((a, b) => b.value - a.value);
     },
