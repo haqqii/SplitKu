@@ -2048,6 +2048,9 @@ function confirmSync() {
         updateSyncUrlStatus('error', '❌ URL tidak valid');
         return;
     }
+    if (!confirm('Apakah mau sync Otomatis?')) {
+        return;
+    }
     runSync(exportUrl);
 }
 
