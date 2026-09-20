@@ -1926,24 +1926,20 @@ function closeImportConfirmModal() {
 function selectImportMode(mode) {
     selectedImportMode = mode;
 
-    // Update UI styling
+    // Update UI styling via .choice-card-active class
     const replaceOption = document.getElementById('importReplaceOption');
     const mergeOption = document.getElementById('importMergeOption');
     const replaceRadio = document.getElementById('importModeReplace');
     const mergeRadio = document.getElementById('importModeMerge');
 
     if (mode === 'replace') {
-        replaceOption.style.borderColor = '#4f46e5';
-        replaceOption.style.background = '#eef2ff';
-        mergeOption.style.borderColor = '#e5e7eb';
-        mergeOption.style.background = 'transparent';
+        replaceOption.classList.add('choice-card-active');
+        mergeOption.classList.remove('choice-card-active');
         replaceRadio.checked = true;
         mergeRadio.checked = false;
     } else {
-        mergeOption.style.borderColor = '#4f46e5';
-        mergeOption.style.background = '#eef2ff';
-        replaceOption.style.borderColor = '#e5e7eb';
-        replaceOption.style.background = 'transparent';
+        mergeOption.classList.add('choice-card-active');
+        replaceOption.classList.remove('choice-card-active');
         mergeRadio.checked = true;
         replaceRadio.checked = false;
     }
@@ -2141,15 +2137,11 @@ function selectSyncMode(mode) {
     if (!oneShotBtn || !autoBtn) return;
 
     if (mode === 'auto') {
-        autoBtn.style.borderColor = '#4f46e5';
-        autoBtn.style.background = '#eef2ff';
-        oneShotBtn.style.borderColor = '#e5e7eb';
-        oneShotBtn.style.background = 'transparent';
+        autoBtn.classList.add('choice-card-active');
+        oneShotBtn.classList.remove('choice-card-active');
     } else {
-        oneShotBtn.style.borderColor = '#4f46e5';
-        oneShotBtn.style.background = '#eef2ff';
-        autoBtn.style.borderColor = '#e5e7eb';
-        autoBtn.style.background = 'transparent';
+        oneShotBtn.classList.add('choice-card-active');
+        autoBtn.classList.remove('choice-card-active');
     }
 }
 
