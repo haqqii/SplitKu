@@ -3001,5 +3001,20 @@ document.addEventListener('visibilitychange', () => {
     }
 });
 
+// (D) Periodic polling — sync every POLL_INTERVAL_MS while tab is active,
+// so external changes (sheet updated by someone else) are picked up
+const AUTO_SYNC_POLL_MS = 60_000; // 60 seconds
+setInterval(() => {
+    if (document.visibilityState !== 'visible') return; // only poll when tab is active
+    if (_syncInProgress) return;
+    const sinceLast = Date.now() - _lastSyncCompletedAt;
+    if (sinceLast < AUTO_SYNC_MIN_INTERVAL_MS) {
+        return; // recently synced (manual or focus), skip
+    }
+    if (tryAutoSync()) {
+        console.log('Auto-sync (poll) dimulai');
+    }
+}, AUTO_SYNC_POLL_MS);
+
 console.log('app.js fully loaded');
 console.log('toggleExportMenu:', typeof window.toggleExportMenu);
