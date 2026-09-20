@@ -404,6 +404,13 @@
 
             <p id="lastSyncDisplay" style="color: #9ca3af; margin-bottom: 12px; font-size: 0.8rem; font-style: italic;">Memuat info sinkron...</p>
 
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding: 10px 12px; background: #f9fafb; border-radius: 8px;">
+                <input type="checkbox" id="autoSyncToggle" onchange="onAutoSyncToggleChange()" style="margin: 0; cursor: pointer;">
+                <label for="autoSyncToggle" style="font-size: 0.85rem; color: #374151; cursor: pointer; flex: 1;">
+                    🔄 Sync otomatis (saat buka &amp; balik ke tab ini)
+                </label>
+            </div>
+
             <div style="display: flex; gap: 12px;">
                 <button onclick="closeSyncUrlModal()" style="flex: 1; background: #f3f4f6; color: #374151; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Tutup</button>
                 <button id="syncNowBtn" onclick="confirmSync()" disabled style="flex: 1; background: #4f46e5; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: not-allowed; font-size: 0.95rem; font-weight: 500; opacity: 0.5;">Sinkron</button>

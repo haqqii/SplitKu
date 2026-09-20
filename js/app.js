@@ -1957,6 +1957,7 @@ function showSyncConfirmModal() {
     // Reset status + button state
     updateSyncUrlStatus('', '');
     updateSyncButton();
+    syncAutoSyncCheckbox();
 
     document.getElementById('syncUrlModal').classList.add('show');
     setTimeout(() => input && input.focus(), 0);
@@ -2106,6 +2107,9 @@ function runSync(exportUrl, options = {}) {
                     `total ${result.total} transaksi`
                 );
             }
+
+            // First-time offer to enable auto-sync (only after a manual sync, not auto)
+            offerAutoSyncIfFirstTime();
         })
         .catch(err => {
             hideLoadingToast();
@@ -2125,6 +2129,7 @@ function runSync(exportUrl, options = {}) {
 function tryAutoSync() {
     if (_syncInProgress) return false;
     if (!window.Storage || !Storage.getSyncUrl) return false;
+    if (!Storage.isAutoSyncEnabled || !Storage.isAutoSyncEnabled()) return false;
 
     const rawUrl = Storage.getSyncUrl();
     if (!rawUrl) return false;
@@ -2134,6 +2139,49 @@ function tryAutoSync() {
 
     runSync(exportUrl, { silent: true });
     return true;
+}
+
+// After first successful sync, ask the user if they want auto-sync enabled.
+// Runs once per user (tracked via hasOfferedAutoSync flag).
+function offerAutoSyncIfFirstTime() {
+    if (!window.Storage) return;
+    if (Storage.hasOfferedAutoSync && Storage.hasOfferedAutoSync()) return;
+    if (Storage.isAutoSyncEnabled && Storage.isAutoSyncEnabled()) {
+        Storage.markAutoSyncOffered();
+        return;
+    }
+
+    Storage.markAutoSyncOffered();
+
+    setTimeout(() => {
+        if (confirm('Apakah mau sync Otomatis?\n\nAkan sync otomatis setiap kali:\n• Buka app ini\n• Balik ke tab ini (setelah ke tab lain)\n\nKamu bisa toggle nanti di modal sync.')) {
+            if (Storage.setAutoSync) Storage.setAutoSync(true);
+            showToast('✓ Auto-sync diaktifkan');
+            // Update checkbox if modal is currently open
+            const cb = document.getElementById('autoSyncToggle');
+            if (cb) cb.checked = true;
+        }
+    }, 800);
+}
+
+// Sync the auto-sync checkbox state from storage to the UI
+function syncAutoSyncCheckbox() {
+    const cb = document.getElementById('autoSyncToggle');
+    if (!cb || !window.Storage) return;
+    if (Storage.isAutoSyncEnabled) {
+        cb.checked = Storage.isAutoSyncEnabled();
+    }
+}
+
+function onAutoSyncToggleChange() {
+    const cb = document.getElementById('autoSyncToggle');
+    if (!cb || !window.Storage || !Storage.setAutoSync) return;
+    Storage.setAutoSync(cb.checked);
+    if (cb.checked) {
+        showToast('Auto-sync diaktifkan — sync otomatis saat buka / balik ke tab');
+    } else {
+        showToast('Auto-sync dimatikan');
+    }
 }
 
 function showToast(message) {
@@ -2873,6 +2921,7 @@ window.onSyncUrlInput = onSyncUrlInput;
 window.onSyncUrlKeyDown = onSyncUrlKeyDown;
 window.downloadSyncTemplate = downloadSyncTemplate;
 window.confirmSync = confirmSync;
+window.onAutoSyncToggleChange = onAutoSyncToggleChange;
 window.showImportConfirmModal = showImportConfirmModal;
 window.selectFileForImport = selectFileForImport;
 
