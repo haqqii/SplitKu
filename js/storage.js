@@ -815,6 +815,7 @@ const Storage = {
     // User-configured sync URL (persisted in localStorage)
     SYNC_URL_KEY: 'hartaGonoGini_syncUrl',
     LAST_SYNC_KEY: 'hartaGonoGini_lastSync',
+    LAST_SYNC_ERROR_KEY: 'hartaGonoGini_lastSyncError',
     AUTO_SYNC_KEY: 'hartaGonoGini_autoSync',
 
     // Get the user's sync URL (empty string if not set)
@@ -1165,6 +1166,26 @@ const Storage = {
         } catch (e) {
             return null;
         }
+    },
+
+    // Last sync error (message + timestamp), or null if last sync succeeded
+    getLastSyncError: function() {
+        try {
+            const raw = localStorage.getItem(this.LAST_SYNC_ERROR_KEY);
+            return raw ? JSON.parse(raw) : null;
+        } catch (e) { return null; }
+    },
+    setLastSyncError: function(message) {
+        try {
+            localStorage.setItem(this.LAST_SYNC_ERROR_KEY, JSON.stringify({
+                message: String(message || 'Unknown error'),
+                at: new Date().toISOString()
+            }));
+        } catch (e) { /* ignore */ }
+    },
+    clearLastSyncError: function() {
+        try { localStorage.removeItem(this.LAST_SYNC_ERROR_KEY); }
+        catch (e) { /* ignore */ }
     },
 
     // Auto-sync preference

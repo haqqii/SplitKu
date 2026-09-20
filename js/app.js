@@ -1935,17 +1935,8 @@ function showSyncConfirmModal() {
         input.value = saved || '';
     }
 
-    // Last sync info
-    const lastEl = document.getElementById('lastSyncDisplay');
-    if (lastEl) {
-        const last = window.Storage && Storage.getLastSync ? Storage.getLastSync() : null;
-        if (last) {
-            const d = new Date(last);
-            lastEl.textContent = `Sinkron terakhir: ${d.toLocaleString('id-ID')}`;
-        } else {
-            lastEl.textContent = 'Belum pernah sinkron';
-        }
-    }
+    // Last sync info (success or error)
+    renderLastSyncDisplay();
 
     // Reset status + button state
     updateSyncUrlStatus('', '');
@@ -1954,6 +1945,30 @@ function showSyncConfirmModal() {
 
     document.getElementById('syncUrlModal').classList.add('show');
     setTimeout(() => input && input.focus(), 0);
+}
+
+// Render the "Sinkron terakhir" / "Sinkron gagal" line in the sync modal
+function renderLastSyncDisplay() {
+    const el = document.getElementById('lastSyncDisplay');
+    if (!el || !window.Storage) return;
+
+    // Priority: show error if there is one (it overrides the success timestamp)
+    const err = Storage.getLastSyncError ? Storage.getLastSyncError() : null;
+    if (err && err.message && err.at) {
+        const d = new Date(err.at);
+        el.innerHTML = `⚠️ <span style="color: #dc2626;">Sinkron gagal: ${escapeHtml(err.message)}</span><br><span style="color: #9ca3af; font-size: 0.75rem;">${d.toLocaleString('id-ID')}</span>`;
+        return;
+    }
+
+    const last = Storage.getLastSync ? Storage.getLastSync() : null;
+    if (last) {
+        const d = new Date(last);
+        el.textContent = `Sinkron terakhir: ${d.toLocaleString('id-ID')}`;
+        el.style.color = '#9ca3af';
+    } else {
+        el.textContent = 'Belum pernah sinkron';
+        el.style.color = '#9ca3af';
+    }
 }
 
 function closeSyncUrlModal() {
@@ -2135,6 +2150,8 @@ function runSync(exportUrl, options = {}) {
             const syncData = Storage.parseSyncCSV(csv);
             const result = Storage.applySync(syncData, 'merge', { deleteMissing });
             _lastSyncCompletedAt = Date.now();
+            // Clear any prior error — sync succeeded
+            if (window.Storage && Storage.clearLastSyncError) Storage.clearLastSyncError();
             hideLoadingToast();
             _syncInProgress = false;
 
@@ -2149,6 +2166,7 @@ function runSync(exportUrl, options = {}) {
             if (lastEl) {
                 const d = new Date();
                 lastEl.textContent = `Sinkron terakhir: ${d.toLocaleString('id-ID')}`;
+                lastEl.style.color = '#9ca3af';
             }
 
             if (!silent) {
@@ -2163,6 +2181,10 @@ function runSync(exportUrl, options = {}) {
         .catch(err => {
             hideLoadingToast();
             _syncInProgress = false;
+            // Persist the error so we can show it in the modal later
+            if (window.Storage && Storage.setLastSyncError) Storage.setLastSyncError(err.message);
+            // Refresh the modal display if it's currently open
+            renderLastSyncDisplay();
             if (silent) {
                 // Background sync failure — log only, don't disturb user
                 console.warn('Background sync gagal:', err.message);
@@ -2414,6 +2436,7 @@ function confirmReset() {
         try { localStorage.removeItem(Storage.SYNC_URL_KEY); } catch (e) {}
         try { localStorage.removeItem(Storage.AUTO_SYNC_KEY); } catch (e) {}
         try { localStorage.removeItem(Storage.LAST_SYNC_KEY); } catch (e) {}
+        try { localStorage.removeItem(Storage.LAST_SYNC_ERROR_KEY); } catch (e) {}
         try { localStorage.removeItem(Storage.BUDGETS); } catch (e) {}
         try { localStorage.removeItem(Storage.SETTINGS); } catch (e) {}
     }
@@ -2970,6 +2993,7 @@ window.confirmSync = confirmSync;
 window.onAutoSyncToggleChange = onAutoSyncToggleChange;
 window.confirmSyncMode = confirmSyncMode;
 window.closeSyncModeModal = closeSyncModeModal;
+window.renderLastSyncDisplay = renderLastSyncDisplay;
 window.showImportConfirmModal = showImportConfirmModal;
 window.selectFileForImport = selectFileForImport;
 
