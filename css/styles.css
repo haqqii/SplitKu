@@ -898,11 +898,10 @@ footer {
 }
 
 .settlement-main {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    justify-content: space-between;
     gap: var(--space-3);
-    flex-wrap: wrap;
 }
 
 .settlement-people {
@@ -911,6 +910,10 @@ footer {
     gap: var(--space-2);
     min-width: 0;
     flex-wrap: wrap;
+}
+
+.settlement-detail-link {
+    justify-self: center;
 }
 
 .settlement-people .person-avatar {
@@ -990,6 +993,10 @@ footer {
     padding: 4px 8px;
     border-radius: var(--radius-sm, 4px);
     transition: background 0.15s;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    align-self: center;
 }
 .btn-link:hover {
     background: var(--gray-100, #f3f4f6);
@@ -1358,7 +1365,8 @@ footer {
     .person-input { min-height: 40px; }
 
     /* Settlement people: wrap nicely */
-    .settlement-main { flex-direction: column; align-items: stretch; }
+    .settlement-main { grid-template-columns: 1fr; row-gap: var(--space-2); }
+    .settlement-detail-link { justify-self: start; }
     .settlement-action { justify-content: space-between; }
 
     /* Header actions: smaller icons */
