@@ -2403,10 +2403,26 @@ function confirmReset() {
 
     transactions = [];
     nextId = 1;
+    people = [];
+
+    // Clear sync-related state too so a stale URL doesn't repopulate data
+    if (window.Storage) {
+        try { localStorage.removeItem(Storage.SYNC_URL_KEY); } catch (e) {}
+        try { localStorage.removeItem(Storage.AUTO_SYNC_KEY); } catch (e) {}
+        try { localStorage.removeItem(Storage.LAST_SYNC_KEY); } catch (e) {}
+        try { localStorage.removeItem(Storage.BUDGETS); } catch (e) {}
+        try { localStorage.removeItem(Storage.SETTINGS); } catch (e) {}
+    }
+
     saveToStorage();
     closeConfirmModal();
     refreshAll();
-    showToast('Berhasil reset data');
+    renderPeopleManage();
+    renderFormPeople();
+    // Reset auto-sync checkbox in modal (if open later)
+    const cb = document.getElementById('autoSyncToggle');
+    if (cb) cb.checked = false;
+    showToast('Berhasil reset semua data');
 }
 
 // ============================================================================
