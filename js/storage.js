@@ -994,7 +994,7 @@ const Storage = {
             if (!/^\d+$/.test(idRaw)) continue; // skip summary / non-data rows
 
             const id = parseInt(idRaw, 10);
-            const date = this.parseSyncDate((values[dateIdx] || '').trim()) || new Date().toISOString().split('T')[0];
+            const date = this.parseSyncDate((values[dateIdx] || '').trim()) || '';
             const description = ((values[descIdx] || '').trim()) || 'Imported';
             const category = ((values[catIdx] || '').trim()) || 'lainnya';
             const payerName = (values[payerIdx] || '').trim();

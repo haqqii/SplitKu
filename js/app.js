@@ -2151,6 +2151,13 @@ function runSync(exportUrl, options = {}) {
     if (_syncInProgress) return;
     _syncInProgress = true;
 
+    // Defensive: run schema migration before any sync, in case loadFromStorage
+    // wasn't called yet (e.g., edge case where sync runs before init completes).
+    // This ensures stale data gets normalized before merging in sheet data.
+    if (window.Storage && typeof Storage.migrate === 'function') {
+        try { Storage.migrate(); } catch (e) { console.warn('migrate failed:', e); }
+    }
+
     // Persist URL (skip when called from auto-sync where no input is being edited)
     if (!silent) {
         const rawInput = document.getElementById('syncUrlInput');

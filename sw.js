@@ -4,7 +4,7 @@
 
 // Cache version: BUMP on every deploy so the SW doesn't serve stale assets
 // (otherwise the browser keeps running the old app.js when new code is pushed)
-const CACHE_NAME = 'splitku-v9';
+const CACHE_NAME = 'splitku-v10';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
