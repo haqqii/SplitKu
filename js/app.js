@@ -1357,14 +1357,16 @@ function openSettlementDetail(from, to) {
             </div>
         </div>
         ${items.length > 0 ? `
-            <ul class="settlement-items-list" style="margin-top: 16px;">
-                ${items.map(item => `
-                    <li class="${item.isReverse ? 'settlement-item-row reverse' : 'settlement-item-row'}">
-                        <span>${escapeHtml(item.name)}${item.isReverse ? ' <em>(terkompensasi)</em>' : ''}</span>
-                        <span class="amount">${formatCurrency(item.amount)}</span>
-                    </li>
-                `).join('')}
-            </ul>
+            <div class="settlement-detail-items-wrapper">
+                <ul class="settlement-items-list settlement-items-scrollable">
+                    ${items.map(item => `
+                        <li class="${item.isReverse ? 'settlement-item-row reverse' : 'settlement-item-row'}">
+                            <span>${escapeHtml(item.name)}${item.isReverse ? ' <em>(terkompensasi)</em>' : ''}</span>
+                            <span class="amount">${formatCurrency(item.amount)}</span>
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
         ` : '<p class="empty-state-hint" style="text-align: center; padding: 16px;">Tidak ada detail item.</p>'}
     `;
 

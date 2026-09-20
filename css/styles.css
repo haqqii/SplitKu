@@ -1020,6 +1020,43 @@ footer {
     color: var(--gray-800, #1f2937);
 }
 
+/* Scrollable items list in settlement detail modal */
+.settlement-detail-items-wrapper {
+    border: 1px solid var(--gray-200, #e5e7eb);
+    border-radius: var(--radius-md, 8px);
+    background: var(--gray-50, #fafafa);
+    max-height: 50vh;
+    overflow: hidden;
+}
+.settlement-items-scrollable {
+    margin: 0 !important;
+    max-height: 50vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: var(--space-2, 8px) var(--space-3, 12px) !important;
+}
+/* Always-visible styled scrollbar (webkit) */
+.settlement-items-scrollable::-webkit-scrollbar {
+    width: 10px;
+}
+.settlement-items-scrollable::-webkit-scrollbar-track {
+    background: var(--gray-100, #f3f4f6);
+    border-radius: 5px;
+}
+.settlement-items-scrollable::-webkit-scrollbar-thumb {
+    background: var(--gray-400, #9ca3af);
+    border-radius: 5px;
+    border: 2px solid var(--gray-100, #f3f4f6);
+}
+.settlement-items-scrollable::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-500, #6b7280);
+}
+/* Firefox */
+.settlement-items-scrollable {
+    scrollbar-width: thin;
+    scrollbar-color: var(--gray-400, #9ca3af) var(--gray-100, #f3f4f6);
+}
+
 .btn-settle {
     margin-left: 10px;
     padding: 6px 12px;
