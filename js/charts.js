@@ -319,23 +319,24 @@ const Charts = {
         container.replaceChildren();
 
         const wrapper = document.createElement('div');
-        wrapper.style.cssText = 'display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;';
+        wrapper.className = 'chart-legend-grid';
 
         items.forEach(item => {
             const row = document.createElement('div');
-            row.style.cssText = 'display: flex; align-items: center; gap: 6px; min-width: 100px;';
+            row.className = 'chart-legend-item';
 
-            const swatch = document.createElement('div');
-            swatch.style.cssText = `width: 12px; height: 12px; border-radius: 3px; background: ${item.color};`;
+            const swatch = document.createElement('span');
+            swatch.className = 'chart-legend-swatch';
+            swatch.style.background = item.color;
             row.appendChild(swatch);
 
             const label = document.createElement('span');
-            label.style.cssText = 'font-size: 0.85rem; color: #6b7280;';
+            label.className = 'chart-legend-label';
             label.textContent = item.label;
             row.appendChild(label);
 
             const value = document.createElement('span');
-            value.style.cssText = 'font-size: 0.8rem; color: #374151; font-weight: 600;';
+            value.className = 'chart-legend-value';
             value.textContent = this.formatChartCurrency(item.value);
             row.appendChild(value);
 

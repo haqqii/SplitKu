@@ -524,6 +524,33 @@
     color: var(--text-primary);
 }
 
+/* Dark mode footer */
+[data-theme="dark"] footer {
+    background: var(--bg-card);
+    border-top-color: var(--border-color);
+}
+
+[data-theme="dark"] .footer-mark {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .footer-hint {
+    color: var(--text-secondary);
+}
+
+/* Dark mode chart legend */
+[data-theme="dark"] .chart-legend-item:hover {
+    background: var(--bg-hover);
+}
+
+[data-theme="dark"] .chart-legend-label {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .chart-legend-value {
+    color: var(--text-primary);
+}
+
 /* Dark mode buttons */
 [data-theme="dark"] .btn-cancel {
     background: var(--bg-hover);

@@ -345,6 +345,35 @@ header .header-titles {
 }
 
 /* ============================================================================
+   FOOTER
+   ============================================================================ */
+footer {
+    border-top: 1px solid var(--gray-200);
+    margin-top: var(--space-12);
+    padding: var(--space-6) 0;
+    background: white;
+}
+
+.footer-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+}
+
+.footer-mark {
+    font-weight: 700;
+    color: var(--gray-700);
+    font-size: 0.9rem;
+}
+
+.footer-hint {
+    font-size: 0.8rem;
+    color: var(--gray-500);
+}
+
+/* ============================================================================
    FORM SECTIONS + GRIDS
    ============================================================================ */
 .form-section { margin-bottom: var(--space-5); }
@@ -490,6 +519,46 @@ header .header-titles {
     margin: 0 0 var(--space-3);
     color: var(--gray-700);
     font-size: 0.95rem;
+    font-weight: 600;
+}
+
+/* Chart legend items (drawn by charts.js drawLegend) */
+.chart-legend-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    justify-content: center;
+}
+
+.chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 100px;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+}
+
+.chart-legend-item:hover {
+    background: var(--gray-50);
+}
+
+.chart-legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.chart-legend-label {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+}
+
+.chart-legend-value {
+    font-size: 0.8rem;
+    color: var(--gray-700);
     font-weight: 600;
 }
 
