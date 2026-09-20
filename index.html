@@ -430,21 +430,26 @@
                 Sync sekarang bisa dilakukan satu kali, atau kamu bisa aktifkan auto-sync supaya data ter-update otomatis setiap buka / balik ke tab ini.
             </p>
             <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
-                <button id="syncModeOneShot" onclick="confirmSyncMode('once')"
-                        style="padding: 14px 16px; border: 2px solid #4f46e5; background: #eef2ff; border-radius: 10px; cursor: pointer; text-align: left; font-family: inherit;">
+                <div id="syncModeOneShot" onclick="selectSyncMode('once')"
+                     style="padding: 14px 16px; border: 2px solid #4f46e5; background: #eef2ff; border-radius: 10px; cursor: pointer; text-align: left; font-family: inherit; transition: all 0.15s;">
                     <div style="font-weight: 600; color: #1f2937; margin-bottom: 2px; font-size: 0.95rem;">⏱️ Sinkron Sekali</div>
                     <div style="font-size: 0.8rem; color: #6b7280;">Cuma sync sekarang. Auto-sync tetap mati.</div>
-                </button>
-                <button id="syncModeAuto" onclick="confirmSyncMode('auto')"
-                        style="padding: 14px 16px; border: 2px solid #e5e7eb; background: transparent; border-radius: 10px; cursor: pointer; text-align: left; font-family: inherit;">
+                </div>
+                <div id="syncModeAuto" onclick="selectSyncMode('auto')"
+                     style="padding: 14px 16px; border: 2px solid #e5e7eb; background: transparent; border-radius: 10px; cursor: pointer; text-align: left; font-family: inherit; transition: all 0.15s;">
                     <div style="font-weight: 600; color: #1f2937; margin-bottom: 2px; font-size: 0.95rem;">🔄 Sinkron + Aktifkan Auto-sync</div>
                     <div style="font-size: 0.8rem; color: #6b7280;">Sync sekarang dan auto-sync aktif untuk buka &amp; balik tab.</div>
-                </button>
+                </div>
             </div>
 
-            <p style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0; padding: 8px 12px; background: #f3f4f6; border-radius: 6px;">
+            <p style="font-size: 0.75rem; color: #6b7280; margin-bottom: 16px; padding: 8px 12px; background: #f3f4f6; border-radius: 6px;">
                 ℹ️ Row lokal yang gak ada di sheet akan <strong>ikut terhapus</strong> setiap sync. Edit lokal untuk row yang ada tetap aman.
             </p>
+
+            <div style="display: flex; gap: 12px;">
+                <button onclick="closeSyncModeModal()" style="flex: 1; background: #f3f4f6; color: #374151; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Batal</button>
+                <button onclick="confirmSyncMode()" style="flex: 1; background: #4f46e5; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 500;">Oke</button>
+            </div>
             <button onclick="closeSyncModeModal()" style="background: transparent; color: #6b7280; border: none; padding: 8px 16px; cursor: pointer; font-size: 0.85rem;">Batal</button>
         </div>
     </div>

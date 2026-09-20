@@ -2058,23 +2058,9 @@ function confirmSync() {
     // Close URL modal so confirmation modal sits on top
     closeSyncUrlModal();
 
-    // Highlight the option that matches the current auto-sync state
+    // Default selection: match the current auto-sync state
     const autoOn = window.Storage && Storage.isAutoSyncEnabled && Storage.isAutoSyncEnabled();
-    const oneShotBtn = document.getElementById('syncModeOneShot');
-    const autoBtn = document.getElementById('syncModeAuto');
-    if (oneShotBtn && autoBtn) {
-        if (autoOn) {
-            autoBtn.style.borderColor = '#4f46e5';
-            autoBtn.style.background = '#eef2ff';
-            oneShotBtn.style.borderColor = '#e5e7eb';
-            oneShotBtn.style.background = 'transparent';
-        } else {
-            oneShotBtn.style.borderColor = '#4f46e5';
-            oneShotBtn.style.background = '#eef2ff';
-            autoBtn.style.borderColor = '#e5e7eb';
-            autoBtn.style.background = 'transparent';
-        }
-    }
+    selectSyncMode(autoOn ? 'auto' : 'once');
 
     document.getElementById('syncModeModal').classList.add('show');
 }
@@ -2082,11 +2068,34 @@ function confirmSync() {
 function closeSyncModeModal() {
     document.getElementById('syncModeModal').classList.remove('show');
     _pendingSyncUrl = '';
+    _pendingSyncMode = 'once';
 }
 
-// mode: 'once' = sync one time, 'auto' = sync + enable auto-sync for future
-function confirmSyncMode(mode) {
+// User selected an option card (just highlight, don't run yet)
+let _pendingSyncMode = 'once';
+function selectSyncMode(mode) {
+    _pendingSyncMode = mode;
+    const oneShotBtn = document.getElementById('syncModeOneShot');
+    const autoBtn = document.getElementById('syncModeAuto');
+    if (!oneShotBtn || !autoBtn) return;
+
+    if (mode === 'auto') {
+        autoBtn.style.borderColor = '#4f46e5';
+        autoBtn.style.background = '#eef2ff';
+        oneShotBtn.style.borderColor = '#e5e7eb';
+        oneShotBtn.style.background = 'transparent';
+    } else {
+        oneShotBtn.style.borderColor = '#4f46e5';
+        oneShotBtn.style.background = '#eef2ff';
+        autoBtn.style.borderColor = '#e5e7eb';
+        autoBtn.style.background = 'transparent';
+    }
+}
+
+// Called when user clicks the "Oke" button — runs sync with the selected mode
+function confirmSyncMode() {
     const url = _pendingSyncUrl;
+    const mode = _pendingSyncMode;
     closeSyncModeModal();
     if (!url) return;
 
