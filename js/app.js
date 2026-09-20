@@ -862,9 +862,18 @@ function renderSettlements() {
     }).join('');
 
     // Wire up settle handlers via dataset (safe — values flow through JS, not attribute parsing)
-    container.querySelectorAll('[data-action="settle"]').forEach(btn => {
-        btn.addEventListener('click', () => settleBySettlement(btn.dataset.from, btn.dataset.to, parseFloat(btn.dataset.amount)));
+    const settleBtns = container.querySelectorAll('[data-action="settle"]');
+    settleBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const from = btn.dataset.from;
+            const to = btn.dataset.to;
+            const amount = parseFloat(btn.dataset.amount);
+            console.log('[settle click]', { from, to, amount });
+            settleBySettlement(from, to, amount);
+        });
     });
+    console.log('[renderSettlements] wired', settleBtns.length, 'settle buttons');
 
     // Add "Show more/less" button if there are more settlements
     if (settlements.length > SETTLEMENTS_INITIAL_COUNT) {
