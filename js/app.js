@@ -234,9 +234,13 @@ function renderPeopleManage() {
     let html = '';
     for (let i = 0; i < people.length; i++) {
         const person = people[i];
-        const removeBtn = people.length > 1
-            ? '<button data-action="delete-person" data-key="' + escapeHtml(person.key) + '" style="padding: 8px 12px; background: var(--danger); color: white; border: none; border-radius: 6px; cursor: pointer;">Hapus</button>'
-            : '';
+        const isOnlyPerson = people.length <= 1;
+        const removeBtnStyle = isOnlyPerson
+            ? 'padding: 8px 12px; background: #f3f4f6; color: #9ca3af; border: none; border-radius: 6px; cursor: not-allowed;'
+            : 'padding: 8px 12px; background: var(--danger); color: white; border: none; border-radius: 6px; cursor: pointer;';
+        const removeBtn = '<button data-action="delete-person" data-key="' + escapeHtml(person.key) + '"' +
+            (isOnlyPerson ? ' disabled title="Minimal harus ada 1 orang"' : '') +
+            ' style="' + removeBtnStyle + '">Hapus</button>';
         html += '<div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">' +
             '<input type="text" value="' + escapeHtml(person.name) + '" data-action="update-person" data-key="' + escapeHtml(person.key) + '"' +
             ' style="flex: 1; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px;">' +
