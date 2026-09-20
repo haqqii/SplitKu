@@ -32,20 +32,36 @@
                         </button>
                         <div id="exportMenu" class="dropdown-menu">
                             <button onclick="exportToJSON()" class="dropdown-item">
-                                <span>📄</span> Export JSON
+                                <span class="dropdown-item-icon">📄</span>
+                                <span class="dropdown-item-content">
+                                    <span class="dropdown-item-label">Export JSON</span>
+                                </span>
                             </button>
                             <button onclick="exportToCSV()" class="dropdown-item">
-                                <span>📊</span> Export CSV
+                                <span class="dropdown-item-icon">📊</span>
+                                <span class="dropdown-item-content">
+                                    <span class="dropdown-item-label">Export CSV</span>
+                                </span>
                             </button>
                             <button onclick="selectFileForImport()" class="dropdown-item">
-                                <span>📤</span> Import Data
+                                <span class="dropdown-item-icon">📤</span>
+                                <span class="dropdown-item-content">
+                                    <span class="dropdown-item-label">Import Data</span>
+                                </span>
                             </button>
                             <button onclick="showSyncConfirmModal()" class="dropdown-item">
-                                <span>🔄</span> Sinkron dari Google Sheet
+                                <span class="dropdown-item-icon">🔄</span>
+                                <span class="dropdown-item-content">
+                                    <span class="dropdown-item-label">Sinkron dari Google Sheet</span>
+                                </span>
                             </button>
                             <div class="dropdown-divider"></div>
                             <button onclick="resetAllData()" class="dropdown-item dropdown-item-danger">
-                                <span>🗑️</span> Reset Semua
+                                <span class="dropdown-item-icon">🗑️</span>
+                                <span class="dropdown-item-content">
+                                    <span class="dropdown-item-label">Reset Semua</span>
+                                    <span class="dropdown-item-hint">Hapus semua data lokal</span>
+                                </span>
                             </button>
                         </div>
                     </div>
