@@ -320,6 +320,88 @@ header .header-titles {
 }
 
 /* ============================================================================
+   FORM SECTIONS + GRIDS
+   ============================================================================ */
+.form-section { margin-bottom: var(--space-5); }
+.form-section-title { font-size: 1rem; color: var(--gray-600); margin-bottom: var(--space-3); }
+.form-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-3);
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.form-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-3);
+}
+
+.form-grid-spaced { margin-top: var(--space-3); }
+
+.form-grid-split {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, auto));
+    gap: var(--space-3);
+}
+
+.input-disabled { background: var(--gray-100); }
+
+.auto-total-hint {
+    font-size: 0.8rem;
+    color: var(--gray-500);
+}
+
+/* ============================================================================
+   ANIMATIONS — subtle entry + micro-interactions
+   ============================================================================ */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in-up {
+    animation: fadeInUp var(--transition) ease;
+}
+
+.stat-card,
+.settlement-item,
+.person-row {
+    animation: fadeInUp var(--transition-slow) ease;
+}
+
+/* ============================================================================
+   PRINT
+   ============================================================================ */
+@media print {
+    header,
+    .modal,
+    .toast,
+    .pagination,
+    .filter-bar,
+    .btn,
+    button,
+    .card-header .btn { display: none !important; }
+
+    body { background: white !important; color: black !important; }
+
+    .container { max-width: none; padding: 0; }
+
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #ccc !important;
+        page-break-inside: avoid;
+    }
+
+    .transactions-table th { background: #f0f0f0 !important; color: black !important; }
+    .transactions-table tr { page-break-inside: avoid; }
+
+    .empty-state, .modal { display: none !important; }
+}
+
+/* ============================================================================
    PAGINATION
    ============================================================================ */
 .pagination {
