@@ -84,31 +84,16 @@ header {
 }
 
 header h1 {
-    color: white;
-}
-
-header p {
-    color: rgba(255, 255, 255, 0.85);
-}
-
-header .header-mark {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    backdrop-filter: blur(4px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-header h1 {
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--gray-800);
+    color: white;
     display: inline-flex;
     align-items: center;
     gap: 10px;
 }
 
 header p {
-    color: var(--gray-500);
+    color: rgba(255, 255, 255, 0.85);
     font-size: 0.875rem;
     margin-top: 2px;
 }
@@ -120,8 +105,10 @@ header .header-mark {
     width: 36px;
     height: 36px;
     border-radius: var(--radius-md);
-    background: var(--primary);
+    background: rgba(255, 255, 255, 0.2);
     color: white;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(4px);
     font-size: 1.1rem;
 }
 
