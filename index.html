@@ -94,18 +94,18 @@
             </div>
 
             <!-- Charts -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-                <div class="chart-container" style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px;">
-                    <h4 style="margin-bottom: 12px; color: #374151; font-size: 0.95rem;">📈 Pengeluaran per Kategori</h4>
-                    <div style="display: flex; justify-content: center;">
-                        <canvas id="categoryChart" style="max-width: 200px; max-height: 200px;"></canvas>
+            <div class="chart-grid">
+                <div class="chart-container">
+                    <h4 class="chart-title">📈 Pengeluaran per Kategori</h4>
+                    <div class="chart-canvas-wrap">
+                        <canvas id="categoryChart"></canvas>
                     </div>
-                    <div id="categoryLegend" style="margin-top: 12px;"></div>
+                    <div id="categoryLegend" class="chart-legend"></div>
                 </div>
-                <div class="chart-container" style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px;">
-                    <h4 style="margin-bottom: 12px; color: #374151; font-size: 0.95rem;">👥 Pengeluaran per Orang</h4>
-                    <canvas id="personChart" style="max-height: 180px;"></canvas>
-                    <div id="personLegend" style="margin-top: 12px;"></div>
+                <div class="chart-container">
+                    <h4 class="chart-title">👥 Pengeluaran per Orang</h4>
+                    <canvas id="personChart"></canvas>
+                    <div id="personLegend" class="chart-legend"></div>
                 </div>
             </div>
         </div>

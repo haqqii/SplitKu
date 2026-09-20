@@ -140,7 +140,47 @@ header .header-titles {
     padding-bottom: 10px;
 }
 
-/* Transactions Table */
+/* ============================================================================
+   CHART CONTAINER
+   ============================================================================ */
+.chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-4);
+}
+
+.chart-container {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    box-shadow: var(--shadow-xs);
+}
+
+.chart-title {
+    margin: 0 0 var(--space-3);
+    color: var(--gray-700);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.chart-canvas-wrap {
+    display: flex;
+    justify-content: center;
+}
+
+.chart-canvas-wrap canvas {
+    max-width: 200px;
+    max-height: 200px;
+}
+
+#personChart {
+    max-height: 180px;
+}
+
+.chart-legend {
+    margin-top: var(--space-3);
+}
 .transactions-table {
     width: 100%;
     border-collapse: collapse;
