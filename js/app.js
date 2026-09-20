@@ -844,19 +844,10 @@ function renderSettlements() {
                 </div>
                 <div class="settlement-action">
                     <span class="settlement-amount">${formatCurrency(s.amount)}</span>
+                    ${s.items.length > 0 ? `<button class="btn-link" data-action="lihat-detail" data-from="${escapeHtml(s.from)}" data-to="${escapeHtml(s.to)}">Lihat Detail</button>` : ''}
                     <button class="btn btn-success" data-action="settle" data-from="${escapeHtml(s.from)}" data-to="${escapeHtml(s.to)}" data-amount="${s.amount}">Selesai</button>
                 </div>
             </div>
-            ${s.items.length > 0 ? `
-                <ul class="settlement-items-list">
-                    ${s.items.map(item => `
-                        <li class="${item.isReverse ? 'settlement-item-row reverse' : 'settlement-item-row'}">
-                            <span>${escapeHtml(item.name)}${item.isReverse ? ' <em>(terkompensasi)</em>' : ''}</span>
-                            <span class="amount">${formatCurrency(item.amount)}</span>
-                        </li>
-                    `).join('')}
-                </ul>
-            ` : ''}
         </li>
     `;
     }).join('');
@@ -896,6 +887,14 @@ function renderSettlements() {
             const amount = parseFloat(btn.dataset.amount);
             console.log('[settle click]', { from, to, amount });
             settleBySettlement(from, to, amount);
+        });
+    });
+
+    // Wire up lihat-detail buttons — open modal showing the item breakdown
+    container.querySelectorAll('[data-action="lihat-detail"]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openSettlementDetail(btn.dataset.from, btn.dataset.to);
         });
     });
     console.log('[renderSettlements] wired', settleBtns.length, 'settle buttons');
@@ -1326,6 +1325,53 @@ function settleBySettlement(from, to, amount) {
 function closeConfirmSettleModal() {
     document.getElementById('confirmSettleModal').classList.remove('show');
     settleData = { from: '', to: '', amount: 0 };
+}
+
+function openSettlementDetail(from, to) {
+    // Find settlement matching from/to (order-sensitive: only the directed settlement)
+    const settlement = settlements.find(s => s.from === from && s.to === to);
+    if (!settlement) return;
+
+    const modal = document.getElementById('settlementDetailModal');
+    const body = document.getElementById('settlementDetailBody');
+    const title = document.getElementById('settlementDetailTitle');
+    const fromName = escapeHtml(getPersonName(from));
+    const toName = escapeHtml(getPersonName(to));
+    const fromClass = escapeHtml(getPersonColorClass(from));
+    const toClass = escapeHtml(getPersonColorClass(to));
+
+    title.innerHTML = `<span class="person-avatar ${fromClass}">${(fromName[0] || '?').toUpperCase()}</span> ${fromName} → <span class="person-avatar ${toClass}">${(toName[0] || '?').toUpperCase()}</span> ${toName}`;
+
+    const items = settlement.items || [];
+    body.innerHTML = `
+        <div class="settlement-detail-summary">
+            <div class="settlement-detail-summary-row">
+                <span class="label">Total</span>
+                <span class="value">${formatCurrency(settlement.amount)}</span>
+            </div>
+            <div class="settlement-detail-summary-row">
+                <span class="label">Jumlah item</span>
+                <span class="value">${items.length}</span>
+            </div>
+        </div>
+        ${items.length > 0 ? `
+            <ul class="settlement-items-list" style="margin-top: 16px;">
+                ${items.map(item => `
+                    <li class="${item.isReverse ? 'settlement-item-row reverse' : 'settlement-item-row'}">
+                        <span>${escapeHtml(item.name)}${item.isReverse ? ' <em>(terkompensasi)</em>' : ''}</span>
+                        <span class="amount">${formatCurrency(item.amount)}</span>
+                    </li>
+                `).join('')}
+            </ul>
+        ` : '<p class="empty-state-hint" style="text-align: center; padding: 16px;">Tidak ada detail item.</p>'}
+    `;
+
+    modal.classList.add('show');
+}
+
+function closeSettlementDetailModal() {
+    const modal = document.getElementById('settlementDetailModal');
+    if (modal) modal.classList.remove('show');
 }
 
 function confirmSettle() {
@@ -3068,6 +3114,8 @@ window.closeTransactionDetailModal = closeTransactionDetailModal;
 window.editTransaction = editTransaction;
 window.settlePerson = settlePerson;
 window.settleBySettlement = settleBySettlement;
+window.openSettlementDetail = openSettlementDetail;
+window.closeSettlementDetailModal = closeSettlementDetailModal;
 window.downloadImage = downloadImage;
 window.downloadSettlementImage = downloadSettlementImage;
 window.resetAllData = resetAllData;

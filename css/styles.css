@@ -980,6 +980,42 @@ footer {
     font-size: 0.8rem;
 }
 
+.btn-link {
+    background: none;
+    border: none;
+    color: var(--primary, #4f46e5);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm, 4px);
+    transition: background 0.15s;
+}
+.btn-link:hover {
+    background: var(--gray-100, #f3f4f6);
+    text-decoration: underline;
+}
+
+.settlement-detail-summary {
+    background: var(--gray-50, #f9fafb);
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    margin-bottom: var(--space-2, 8px);
+}
+.settlement-detail-summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+}
+.settlement-detail-summary-row .label {
+    color: var(--gray-500, #6b7280);
+    font-size: 0.85rem;
+}
+.settlement-detail-summary-row .value {
+    font-weight: 600;
+    color: var(--gray-800, #1f2937);
+}
+
 .btn-settle {
     margin-left: 10px;
     padding: 6px 12px;
