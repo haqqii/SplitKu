@@ -2251,18 +2251,40 @@ function closeSyncModeModal() {
 // User selected an option card (just highlight, don't run yet)
 let _pendingSyncMode = 'once';
 function selectSyncMode(mode) {
+    console.log('[selectSyncMode] called with mode:', mode);
     _pendingSyncMode = mode;
     const oneShotBtn = document.getElementById('syncModeOneShot');
     const autoBtn = document.getElementById('syncModeAuto');
-    if (!oneShotBtn || !autoBtn) return;
+    console.log('[selectSyncMode] elements found:', { oneShotBtn: !!oneShotBtn, autoBtn: !!autoBtn });
+    if (!oneShotBtn || !autoBtn) {
+        console.error('[selectSyncMode] missing elements, aborting');
+        return;
+    }
 
+    // The cards have inline border/background that override the
+    // .choice-card-active class. Toggle inline styles explicitly so the
+    // visual state changes regardless of CSS specificity.
     if (mode === 'auto') {
         autoBtn.classList.add('choice-card-active');
+        autoBtn.style.borderColor = '#4f46e5';
+        autoBtn.style.background = '#eef2ff';
         oneShotBtn.classList.remove('choice-card-active');
+        oneShotBtn.style.borderColor = '#e5e7eb';
+        oneShotBtn.style.background = 'transparent';
     } else {
         oneShotBtn.classList.add('choice-card-active');
+        oneShotBtn.style.borderColor = '#4f46e5';
+        oneShotBtn.style.background = '#eef2ff';
         autoBtn.classList.remove('choice-card-active');
+        autoBtn.style.borderColor = '#e5e7eb';
+        autoBtn.style.background = 'transparent';
     }
+    console.log('[selectSyncMode] applied, active state:', {
+        auto: autoBtn.classList.contains('choice-card-active'),
+        oneShot: oneShotBtn.classList.contains('choice-card-active'),
+        autoBorder: autoBtn.style.borderColor,
+        autoBg: autoBtn.style.background
+    });
 }
 
 // Called when user clicks the "Oke" button — runs sync with the selected mode
