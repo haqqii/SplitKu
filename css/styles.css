@@ -503,7 +503,7 @@ header .header-actions {
     letter-spacing: 2px;
     margin-bottom: var(--space-4);
     width: 100%;
-    max-width: 280px;
+    max-width: 100%;
 }
 
 /* ============================================================================
