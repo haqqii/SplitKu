@@ -3167,7 +3167,6 @@ window.onSyncUrlKeyDown = onSyncUrlKeyDown;
 window.downloadSyncTemplate = downloadSyncTemplate;
 window.confirmSync = confirmSync;
 window.onAutoSyncToggleChange = onAutoSyncToggleChange;
-window.openSyncModeModal = openSyncModeModal;
 window.selectSyncMode = selectSyncMode;
 window.confirmSyncMode = confirmSyncMode;
 window.closeSyncModeModal = closeSyncModeModal;
