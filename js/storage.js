@@ -598,6 +598,17 @@ const Storage = {
         return { transactions, nextId };
     },
 
+    // A transaction is Settled only when it has at least one split entry and all
+    // of them are paid. Rows whose split failed to parse end up with an empty map,
+    // and [].every() is true — so without this guard they read as Settled.
+    isSettled: function(t) {
+        const split = t.split || {};
+        const keys = Object.keys(split);
+        if (keys.length === 0) return false;
+        const splitStatus = t.splitStatus || {};
+        return keys.every(p => splitStatus[p] === 'paid');
+    },
+
     calculateSplitStatus: function(split, status) {
         const splitStatus = {};
         const isSettled = status.toLowerCase() === 'settled';
@@ -627,8 +638,7 @@ const Storage = {
                 splitParts.push(`${person}(${amount})${items ? '(' + items + ')' : ''}`);
             });
 
-            const splitStatus = t.splitStatus || {};
-            const allPaid = Object.keys(t.split || {}).every(p => splitStatus[p] === 'paid');
+            const allPaid = this.isSettled(t);
 
             return [
                 t.id,
@@ -1038,10 +1048,11 @@ const Storage = {
                         const trimmed = entry.trim();
                         if (!trimmed) continue;
                         // Match: Name(amount)(description)  — description can contain parens
-                        const match = trimmed.match(/^([^()]+?)\((\d+)\)\s*(.*)$/);
+                        // Amount may be fractional (e.g. "Yohn(9641.5)(momoyo)")
+                        const match = trimmed.match(/^([^()]+?)\((\d+(?:\.\d+)?)\)\s*(.*)$/);
                         if (!match) continue;
                         const [, name, amountStr, itemDesc] = match;
-                        const amount = parseInt(amountStr, 10);
+                        const amount = parseFloat(amountStr);
                         if (!amount || amount <= 0) continue;
                         const key = addPerson(name);
                         if (!key) continue;
@@ -1150,6 +1161,20 @@ const Storage = {
             const toAdd = newTransactions.filter(t => !existingIds.has(t.id));
             finalTransactions = [...existingTransactions, ...toAdd];
             addedCount = toAdd.length;
+
+            // Repair rows whose split never parsed (empty map). The sheet has the
+            // correct split, so adopt it instead of forcing the user to wipe
+            // localStorage. Locally-marked paid status is kept as-is.
+            const sheetById = new Map(newTransactions.map(t => [String(t.id), t]));
+            existingTransactions.forEach(t => {
+                if (Object.keys(t.split || {}).length > 0) return;
+                const fromSheet = sheetById.get(String(t.id));
+                if (!fromSheet || Object.keys(fromSheet.split || {}).length === 0) return;
+                t.split = fromSheet.split;
+                if (!Object.keys(t.splitStatus || {}).length) {
+                    t.splitStatus = fromSheet.splitStatus || {};
+                }
+            });
 
             // Optional: remove local rows whose IDs aren't in the synced sheet
             if (deleteMissing) {

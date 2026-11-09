@@ -657,10 +657,7 @@ function renderDashboard() {
     // Settled count
     let settledCount = 0;
     transactions.forEach(t => {
-        const splitStatus = t.splitStatus || {};
-        if (Object.keys(t.split || {}).every(p => splitStatus[p] === 'paid')) {
-            settledCount++;
-        }
+        if (Storage.isSettled(t)) settledCount++;
     });
 
     // Top payer
@@ -948,8 +945,7 @@ function renderTransactions() {
 
     if (filterStatus) {
         filteredTransactions = filteredTransactions.filter(t => {
-            const splitStatus = t.splitStatus || {};
-            const allPaid = Object.keys(t.split || {}).every(p => splitStatus[p] === 'paid');
+            const allPaid = Storage.isSettled(t);
             return filterStatus === 'settled' ? allPaid : !allPaid;
         });
     }
@@ -981,8 +977,7 @@ function renderTransactions() {
     }
 
     tbody.innerHTML = paginatedTransactions.map((t, idx) => {
-        const splitStatus = t.splitStatus || {};
-        const allPaid = Object.keys(t.split || {}).every(p => splitStatus[p] === 'paid');
+        const allPaid = Storage.isSettled(t);
         const globalIdx = startIndex + idx + 1;
 
         return `
@@ -1177,10 +1172,7 @@ function renderHistory() {
     const tbody = document.getElementById('historyBody');
     if (!tbody) return;
 
-    let settledTransactions = transactions.filter(t => {
-        const splitStatus = t.splitStatus || {};
-        return Object.keys(t.split || {}).every(p => splitStatus[p] === 'paid');
-    });
+    let settledTransactions = transactions.filter(t => Storage.isSettled(t));
 
     // Sort by date descending
     settledTransactions.sort((a, b) => {
