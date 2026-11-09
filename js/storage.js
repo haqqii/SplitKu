@@ -486,7 +486,7 @@ const Storage = {
         // Parse format: Person(amount); Person(amount) or Person(amount)(items)
         const parts = splitStr.split(';');
         parts.forEach(part => {
-            const match = part.match(/([^(]+)\(([^)]+)\)/);
+            const match = part.trim().match(/^([^()]+?)\(([^)]+)\)\s*(?:\(([^)]*)\))?/);
             if (match) {
                 const name = match[1].trim();
                 const key = name.toLowerCase().replace(/\s+/g, '');
@@ -506,7 +506,12 @@ const Storage = {
                 }
 
                 if (matchedKey && matchedKey !== payerKey) {
-                    split[matchedKey] = (split[matchedKey] || 0) + amount;
+                    const existing = split[matchedKey];
+                    const prevAmount = existing ? existing.amount : 0;
+                    const prevItems = existing ? existing.items : [];
+                    const itemName = (match[3] || '').trim();
+                    const items = itemName ? [...prevItems, { name: itemName, amount }] : prevItems;
+                    split[matchedKey] = { amount: prevAmount + amount, items };
                 }
             }
         });
@@ -1162,18 +1167,38 @@ const Storage = {
             finalTransactions = [...existingTransactions, ...toAdd];
             addedCount = toAdd.length;
 
-            // Repair rows whose split never parsed (empty map). The sheet has the
-            // correct split, so adopt it instead of forcing the user to wipe
+            // Repair rows whose split never parsed (empty map), and rows whose
+            // split came in without per-item detail (e.g. imported via CSV/XLSX,
+            // which drops the "(item)" suffix). Without items the settlement has
+            // nothing to show in "lihat detail". The sheet has the full
+            // breakdown, so adopt it instead of forcing the user to wipe
             // localStorage. Locally-marked paid status is kept as-is.
             const sheetById = new Map(newTransactions.map(t => [String(t.id), t]));
             existingTransactions.forEach(t => {
-                if (Object.keys(t.split || {}).length > 0) return;
                 const fromSheet = sheetById.get(String(t.id));
-                if (!fromSheet || Object.keys(fromSheet.split || {}).length === 0) return;
-                t.split = fromSheet.split;
-                if (!Object.keys(t.splitStatus || {}).length) {
-                    t.splitStatus = fromSheet.splitStatus || {};
+                if (!fromSheet) return;
+                const localSplit = t.split || {};
+                const sheetSplit = fromSheet.split || {};
+
+                if (!Object.keys(localSplit).length) {
+                    if (!Object.keys(sheetSplit).length) return;
+                    t.split = sheetSplit;
+                    if (!Object.keys(t.splitStatus || {}).length) {
+                        t.splitStatus = fromSheet.splitStatus || {};
+                    }
+                    return;
                 }
+
+                Object.keys(localSplit).forEach(person => {
+                    const local = localSplit[person];
+                    const remote = sheetSplit[person];
+                    if (!remote || !Array.isArray(remote.items) || remote.items.length === 0) return;
+                    if (typeof local === 'number') {
+                        localSplit[person] = { amount: local, items: remote.items };
+                    } else if (!Array.isArray(local.items) || local.items.length === 0) {
+                        local.items = remote.items;
+                    }
+                });
             });
 
             // Optional: remove local rows whose IDs aren't in the synced sheet
